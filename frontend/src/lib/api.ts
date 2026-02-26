@@ -1,0 +1,154 @@
+/**
+ * UniGPT API Client
+ * Typed API client for communicating with the Hybrid FastAPI backend.
+ */
+
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
+interface RequestOptions {
+    method?: string;
+    body?: unknown;
+    token?: string;
+    isFormData?: boolean;
+}
+
+async function request<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
+    const { method = 'GET', body, token, isFormData = false } = options;
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    if (!isFormData) headers['Content-Type'] = 'application/json';
+
+    const config: RequestInit = { method, headers };
+    if (body) {
+        config.body = isFormData ? (body as FormData) : JSON.stringify(body);
+    }
+
+    const response = await fetch(`${API_BASE}${endpoint}`, config);
+    if (!response.ok) {
+        const error = await response.json().catch(() => ({ detail: 'Request failed' }));
+        throw new Error(error.detail || `HTTP ${response.status}`);
+    }
+    return response.json();
+}
+
+export const authApi = {
+    signup: (data: { email: string; password: string; full_name: string; department?: string; role?: string }) =>
+        request<{ access_token: string; user: UserProfile }>('/auth/signup', { method: 'POST', body: data }),
+
+    login: (data: { email: string; password: string }) =>
+        request<{ access_token: string; user: UserProfile }>('/auth/login', { method: 'POST', body: data }),
+    getMe: (token: string) =>
+        request<UserProfile>('/user/me', { token }),
+    listUsers: (token: string) =>
+        request<UserProfile[]>('/auth/users', { token }),
+    inviteUser: (token: string, data: { email: string; full_name: string; role: string }) =>
+        request<void>('/auth/invite', { method: 'POST', body: data, token }),
+};
+
+export const documentsApi = {
+    list: (token: string, params?: { page?: number; doc_type?: string }) => {
+        const query = new URLSearchParams();
+        if (params?.page) query.set('page', String(params.page));
+        if (params?.doc_type) query.set('doc_type', params.doc_type);
+        return request<DocumentListResponse>(`/documents?${query.toString()}`, { token });
+    },
+    upload: (token: string, formData: FormData) =>
+        request<DocumentResponse>('/admin/documents', { method: 'POST', body: formData, token, isFormData: true }),
+    delete: (token: string, id: string) =>
+        request<void>(`/admin/documents/${id}`, { method: 'DELETE', token }),
+};
+
+export const agentApi = {
+    query: (token: string, data: { query: string; context?: { dept?: string }; conversation_id?: string }) =>
+        request<AgentQueryResponse>('/agent/query', { method: 'POST', body: data, token }),
+    getHistory: (token: string) =>
+        request<ConversationListResponse>('/agent/history', { token }),
+    getConversation: (token: string, id: string) =>
+        request<ConversationResponse>(`/agent/conversation/${id}`, { token }),
+};
+
+export const adminApi = {
+    getAuditLogs: (token: string) =>
+        request<AuditLogListResponse>('/admin/audit', { token })
+};
+
+export const systemApi = {
+    metrics: (token: string) =>
+        request<MetricsResponse>('/admin/metrics', { token })
+};
+
+export interface UserProfile {
+    id: string;
+    email: string;
+    full_name: string;
+    role: 'student' | 'faculty' | 'admin';
+    department?: string;
+    created_at?: string;
+}
+
+export interface DocumentResponse {
+    id: string;
+    filename: string;
+    doc_type: string;
+    department?: string;
+    course?: string;
+    tags: string[];
+    visibility: boolean;
+    uploaded_at?: string;
+}
+
+export interface DocumentListResponse {
+    documents: DocumentResponse[];
+    total: number;
+    page: number;
+    per_page: number;
+}
+
+export interface AgentQueryResponse {
+    answer: string;
+    sources: Array<{ document_id: string; title: string; snippet: string; metadata?: Record<string, unknown> }>;
+    conversation_id: string;
+    role_badge: string;
+    rationale?: string;
+}
+
+export interface ConversationResponse {
+    id: string;
+    title: string;
+    role: string;
+    messages: Array<{ role: string; content: string }>;
+    last_active?: string;
+}
+
+export interface ConversationListResponse {
+    conversations: ConversationResponse[];
+    total: number;
+}
+
+export interface AuditLogEntry {
+    id: string;
+    action: string;
+    user_id?: string;
+    payload?: unknown;
+    timestamp?: string;
+}
+
+export interface AuditLogListResponse {
+    logs: AuditLogEntry[];
+    total: number;
+}
+
+export interface MetricsResponse {
+    total_documents: number;
+    total_embeddings: number;
+    total_conversations: number;
+    total_users: number;
+}
+
+export interface SourceCitation {
+    document_id: string;
+    title: string;
+    snippet: string;
+    relevance_score?: number;
+    metadata?: Record<string, unknown>;
+}

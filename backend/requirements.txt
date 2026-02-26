@@ -1,0 +1,17 @@
+fastapi
+uvicorn
+pydantic
+pydantic-settings
+python-jose[cryptography]
+passlib[bcrypt]
+python-multipart
+httpx
+supabase
+pinecone
+sentence-transformers
+torch
+langchain-huggingface
+langchain-openai
+pdfplumber
+python-docx
+python-dotenv
