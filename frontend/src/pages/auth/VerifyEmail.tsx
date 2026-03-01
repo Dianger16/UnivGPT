@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { GraduationCap, Mail, CheckCircle, ArrowLeft, ShieldCheck } from 'lucide-react';
+import { Mail, CheckCircle, ArrowLeft, ShieldCheck } from 'lucide-react';
+import { BrandLogo } from '@/components/ui/BrandLogo';
 
 export default function VerifyEmail() {
     return (
@@ -22,10 +23,13 @@ export default function VerifyEmail() {
                 <div className="text-center mb-10">
                     <Link to="/" className="inline-flex items-center gap-3 transition-transform hover:scale-105">
                         <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center shadow-2xl shadow-primary/20">
-                            <GraduationCap className="w-7 h-7 text-primary-foreground" />
+                            <BrandLogo className="w-7 h-7 text-primary-foreground" />
                         </div>
                         <div className="text-left">
-                            <span className="text-2xl font-black tracking-tighter block leading-none">UniGPT</span>
+                            <span className="text-2xl font-black tracking-tighter block leading-none" style={{ fontFamily: '"Bricolage Grotesque", sans-serif' }}>
+                                <span className="text-foreground">Univ</span>
+                                <span className="text-orange-400">GPT</span>
+                            </span>
                             <span className="text-[10px] uppercase tracking-[0.3em] font-black text-muted-foreground">Verification</span>
                         </div>
                     </Link>
@@ -55,12 +59,12 @@ export default function VerifyEmail() {
                         </div>
 
                         <div className="space-y-3">
-                            <Button variant="outline" className="w-full h-14 rounded-full border-muted-foreground/20 text-[10px] font-black uppercase tracking-[0.2em] glass">
+                            <Button variant="outline" className="w-full h-14 rounded-full border-muted-foreground/20 text-sm font-semibold glass">
                                 Resend Authorization
                             </Button>
 
                             <Link to="/auth/login" className="block text-center pt-2">
-                                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground hover:text-foreground transition-colors cursor-pointer inline-flex items-center gap-2 group">
+                                <span className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors cursor-pointer inline-flex items-center gap-2 group">
                                     <ArrowLeft className="w-3 h-3 transition-transform group-hover:-translate-x-1" />
                                     Return to Session Entry
                                 </span>

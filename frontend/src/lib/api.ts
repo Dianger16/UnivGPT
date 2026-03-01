@@ -25,6 +25,12 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
 
     const response = await fetch(`${API_BASE}${endpoint}`, config);
     if (!response.ok) {
+        if (response.status === 401 && options.token) {
+            // Auto-logout ONLY if an authenticated request gets rejected (corrupted/expired token).
+            // Do NOT redirect for failed logins.
+            localStorage.removeItem('unigpt-auth');
+            window.location.href = '/auth/login';
+        }
         const error = await response.json().catch(() => ({ detail: 'Request failed' }));
         throw new Error(error.detail || `HTTP ${response.status}`);
     }
@@ -33,7 +39,19 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
 
 export const authApi = {
     signup: (data: { email: string; password: string; full_name: string; department?: string; role?: string }) =>
-        request<{ access_token: string; user: UserProfile }>('/auth/signup', { method: 'POST', body: data }),
+        request<{ message: string; email: string }>('/auth/signup', { method: 'POST', body: data }),
+
+    verifySignup: (data: { email: string; otp: string }) =>
+        request<{ access_token: string; user: UserProfile }>('/auth/verify', { method: 'POST', body: data }),
+
+    forgotPassword: (data: { email: string }) =>
+        request<{ status: string; message: string }>('/auth/forgot-password', { method: 'POST', body: data }),
+
+    resetPassword: (data: { email: string; otp: string; new_password: string }) =>
+        request<{ status: string; message: string }>('/auth/reset-password', { method: 'POST', body: data }),
+
+    googleAuth: () =>
+        request<{ url: string }>('/auth/google', { method: 'GET' }),
 
     login: (data: { email: string; password: string }) =>
         request<{ access_token: string; user: UserProfile }>('/auth/login', { method: 'POST', body: data }),
@@ -90,11 +108,13 @@ export interface DocumentResponse {
     id: string;
     filename: string;
     doc_type: string;
+    role?: string; // Alias for doc_type if needed
     department?: string;
     course?: string;
     tags: string[];
     visibility: boolean;
     uploaded_at?: string;
+    created_at?: string; // Alias for uploaded_at
 }
 
 export interface DocumentListResponse {
@@ -129,8 +149,11 @@ export interface AuditLogEntry {
     id: string;
     action: string;
     user_id?: string;
+    user?: { email: string; full_name: string };
+    target_id?: string;
     payload?: unknown;
     timestamp?: string;
+    created_at?: string; // Alias for timestamp
 }
 
 export interface AuditLogListResponse {
@@ -139,10 +162,13 @@ export interface AuditLogListResponse {
 }
 
 export interface MetricsResponse {
-    total_documents: number;
-    total_embeddings: number;
-    total_conversations: number;
-    total_users: number;
+    stats: {
+        total_documents: number;
+        total_embeddings: number;
+        total_conversations: number;
+        total_users: number;
+        total_chats: number;
+    };
 }
 
 export interface SourceCitation {

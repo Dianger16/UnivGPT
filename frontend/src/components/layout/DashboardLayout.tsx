@@ -1,284 +1,256 @@
-import React, { useState, useEffect } from 'react';
-import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useLocation, useNavigate, Outlet, Link } from 'react-router-dom';
 import {
-    LayoutDashboard, FileText, Settings, LogOut,
-    Menu, X, Bell, Search, User, ChevronRight,
-    Sparkles, GraduationCap, Shield, Activity,
-    Zap, Cpu, Globe, Command
+    LayoutDashboard, LogOut, Bell,
+    MessageSquare, FileText, Users, Shield, Settings, Upload,
+    BookOpen, UserCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthStore } from '@/store/authStore';
 import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { BrandLogo } from '@/components/ui/BrandLogo';
+import { Sidebar, SidebarBody, SidebarLink } from '@/components/ui/sidebar';
+import { useToastStore } from '@/store/toastStore';
 
-interface DashboardLayoutProps {
-    children: React.ReactNode;
-}
-
-export default function DashboardLayout({ children }: DashboardLayoutProps) {
-    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-    const [scrolled, setScrolled] = useState(false);
+export default function DashboardLayout() {
+    const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [showNotifications, setShowNotifications] = useState(false);
     const { user, logout } = useAuthStore();
+    const { showToast } = useToastStore();
     const location = useLocation();
     const navigate = useNavigate();
 
     const role = user?.role || 'student';
 
-    useEffect(() => {
-        const handleScroll = () => setScrolled(window.scrollY > 20);
-        window.addEventListener('scroll', handleScroll);
-        return () => window.removeEventListener('scroll', handleScroll);
-    }, []);
-
-    // Correcting icons based on earlier use or typical patterns
-    const MessageSquare = Sparkles; // Fallback or imported
-    const Layers = Cpu;
-    const Database = Globe;
-    const TrendingUp = Activity;
-
-    const navigation = {
+    const navigation: Record<string, { label: string; href: string; icon: React.ReactNode }[]> = {
         student: [
-            { name: 'Research Hub', href: '/dashboard', icon: LayoutDashboard },
-            { name: 'Neural Chat', href: '/dashboard/chat', icon: MessageSquare },
-            { name: 'My Corpus', href: '/dashboard/courses', icon: Layers },
-            { name: 'System Info', href: '/dashboard/settings', icon: Activity },
+            { label: 'Dashboard', href: '/dashboard', icon: <LayoutDashboard className="w-5 h-5 shrink-0" /> },
+            { label: 'AI Chat', href: '/dashboard/chat', icon: <MessageSquare className="w-5 h-5 shrink-0" /> },
+            { label: 'My Courses', href: '/dashboard/courses', icon: <BookOpen className="w-5 h-5 shrink-0" /> },
+            { label: 'Settings', href: '/dashboard/settings', icon: <Settings className="w-5 h-5 shrink-0" /> },
         ],
         faculty: [
-            { name: 'Workspace', href: '/dashboard', icon: LayoutDashboard },
-            { name: 'Knowledge Hub', href: '/dashboard/documents', icon: Database },
-            { name: 'Analytics', href: '/dashboard/analytics', icon: TrendingUp },
-            { name: 'Settings', href: '/dashboard/settings', icon: Settings },
+            { label: 'Dashboard', href: '/dashboard', icon: <LayoutDashboard className="w-5 h-5 shrink-0" /> },
+            { label: 'AI Chat', href: '/dashboard/chat', icon: <MessageSquare className="w-5 h-5 shrink-0" /> },
+            { label: 'Documents', href: '/dashboard/documents', icon: <FileText className="w-5 h-5 shrink-0" /> },
+            { label: 'Settings', href: '/dashboard/settings', icon: <Settings className="w-5 h-5 shrink-0" /> },
         ],
         admin: [
-            { name: 'Command Center', href: '/dashboard', icon: Command },
-            { name: 'Policy Corpus', href: '/dashboard/documents', icon: Shield },
-            { name: 'Node Directory', href: '/dashboard/users', icon: User },
-            { name: 'Audit Logs', href: '/dashboard/audit', icon: Activity },
+            { label: 'Overview', href: '/dashboard', icon: <LayoutDashboard className="w-5 h-5 shrink-0" /> },
+            { label: 'Users', href: '/dashboard/users', icon: <Users className="w-5 h-5 shrink-0" /> },
+            { label: 'Documents', href: '/dashboard/documents', icon: <FileText className="w-5 h-5 shrink-0" /> },
+            { label: 'Audit Logs', href: '/dashboard/audit', icon: <Shield className="w-5 h-5 shrink-0" /> },
+            { label: 'Settings', href: '/dashboard/settings', icon: <Settings className="w-5 h-5 shrink-0" /> },
         ],
     };
 
-    const currentNav = navigation[role as keyof typeof navigation] || navigation.student;
+    const currentNav = navigation[role] || navigation.student;
+
+    // Derive page title from current nav
+    const currentPage = currentNav.find(item => location.pathname === item.href);
+    let pageTitle = currentPage?.label || 'Dashboard';
+    if (location.pathname === '/dashboard/profile') pageTitle = 'Profile';
 
     const handleLogout = () => {
         logout();
+        showToast("Signed out successfully", "success");
         navigate('/auth/login');
     };
 
-    return (
-        <div className="flex h-screen bg-background overflow-hidden glow-mesh">
-            {/* Elegant Sidebar */}
-            <aside
-                className={cn(
-                    "relative z-50 flex flex-col transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] border-r border-primary/5 bg-card/20 backdrop-blur-2xl shrink-0 group/sidebar",
-                    isSidebarOpen ? "w-80" : "w-24"
+    const notifications = [
+        { id: 1, text: 'New syllabus uploaded for CS301', time: '5m ago', unread: true },
+        { id: 2, text: 'Campus policy update: Library hours', time: '1h ago', unread: true },
+        { id: 3, text: 'Assignment deadline reminder', time: '3h ago', unread: false },
+    ];
+    const unreadCount = notifications.filter(n => n.unread).length;
+
+    // Get profile image from store (would be set by ProfilePage)
+    const profileImage = (user as any)?.profileImage || null;
+    const userInitial = user?.full_name?.charAt(0) || 'U';
+
+    const ProfileAvatar = ({ size = 'sm' }: { size?: 'sm' | 'md' }) => {
+        const dim = size === 'sm' ? 'w-8 h-8' : 'w-7 h-7';
+        const textSize = size === 'sm' ? 'text-[11px]' : 'text-[10px]';
+        return (
+            <div className={`${dim} rounded-full bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center shrink-0 overflow-hidden`}>
+                {profileImage ? (
+                    <img src={profileImage} alt="" className="w-full h-full object-cover" />
+                ) : (
+                    <span className={`${textSize} font-bold text-white`}>{userInitial}</span>
                 )}
-            >
-                {/* Visual accents */}
-                <div className="absolute top-0 right-0 w-[1px] h-full bg-gradient-to-b from-transparent via-primary/20 to-transparent" />
-                <div className="absolute top-0 left-0 w-full h-48 bg-gradient-to-b from-primary/5 to-transparent pointer-events-none" />
+            </div>
+        );
+    };
 
-                <div className="h-24 flex items-center px-7 shrink-0 relative">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-primary rounded-[1.25rem] flex items-center justify-center shadow-2xl shadow-primary/30 shrink-0 transition-transform hover:rotate-6">
-                            <GraduationCap className="w-7 h-7 text-primary-foreground" />
-                        </div>
-                        <AnimatePresence>
-                            {isSidebarOpen && (
-                                <motion.div
-                                    initial={{ opacity: 0, x: -10 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    exit={{ opacity: 0, x: -10 }}
-                                    className="flex flex-col"
-                                >
-                                    <span className="text-xl font-black tracking-tighter leading-none mb-1">UniGPT</span>
-                                    <div className="flex items-center gap-1.5">
-                                        <div className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
-                                        <span className="text-[9px] uppercase tracking-[0.4em] font-black text-primary/70">{role} NODE</span>
-                                    </div>
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
-                    </div>
-                </div>
-
-                <nav className="flex-1 px-4 space-y-2 py-8 overflow-y-auto overflow-x-hidden custom-scrollbar">
-                    {currentNav.map((item) => {
-                        const isActive = location.pathname === item.href;
-                        return (
-                            <NavLink
-                                key={item.name}
-                                to={item.href}
-                                className={cn(
-                                    "group flex items-center gap-4 px-5 py-4 rounded-[1.5rem] transition-all duration-500 relative overflow-hidden",
-                                    isActive
-                                        ? "bg-primary text-primary-foreground shadow-2xl shadow-primary/20"
-                                        : "text-muted-foreground/70 hover:text-foreground hover:bg-primary/5"
-                                )}
-                            >
-                                <item.icon className={cn("w-6 h-6 shrink-0 transition-all duration-500 group-hover:scale-110 group-hover:rotate-3", isActive && "text-primary-foreground")} />
-                                <AnimatePresence>
-                                    {isSidebarOpen && (
-                                        <motion.span
-                                            initial={{ opacity: 0, x: -5 }}
-                                            animate={{ opacity: 1, x: 0 }}
-                                            className="text-[11px] font-black uppercase tracking-[0.2em] relative z-10"
-                                        >
-                                            {item.name}
-                                        </motion.span>
-                                    )}
-                                </AnimatePresence>
-                                {isActive && isSidebarOpen && (
-                                    <motion.div
-                                        layoutId="sidebar-chevron"
-                                        className="absolute right-5"
-                                    >
-                                        <ChevronRight className="w-3.5 h-3.5 text-primary-foreground/50" />
-                                    </motion.div>
-                                )}
-
-                                {/* Hover background effect */}
-                                {!isActive && (
-                                    <div className="absolute inset-0 bg-primary opacity-0 group-hover:opacity-[0.03] transition-opacity" />
-                                )}
-                            </NavLink>
-                        );
-                    })}
-                </nav>
-
-                <div className="p-4 border-t border-primary/5 shrink-0 relative bg-muted/20">
-                    <button
-                        onClick={handleLogout}
-                        className={cn(
-                            "group flex items-center gap-4 px-5 py-5 rounded-[1.5rem] text-muted-foreground hover:text-destructive transition-all duration-300 w-full relative overflow-hidden",
-                        )}
-                    >
-                        <LogOut className="w-6 h-6 shrink-0 transition-transform group-hover:-translate-x-1" />
-                        <AnimatePresence>
-                            {isSidebarOpen && (
+    return (
+        <div className="flex min-h-screen w-full bg-black text-white">
+            {/* Sticky Sidebar */}
+            <div className="sticky top-0 h-screen shrink-0 z-50">
+                <Sidebar open={sidebarOpen} setOpen={setSidebarOpen}>
+                    <SidebarBody className="justify-between gap-6 py-2">
+                        {/* Top: Logo + Nav */}
+                        <div className="flex flex-col flex-1 overflow-y-auto overflow-x-hidden scrollbar-none">
+                            {/* Brand Logo - Fixed at top of sidebar, Desktop Only */}
+                            <div className="hidden md:flex items-center gap-3 px-3 mb-6 mt-5 h-10 shrink-0">
+                                <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shrink-0 shadow-lg shadow-white/10">
+                                    <BrandLogo className="w-6 h-6 text-black" />
+                                </div>
                                 <motion.span
                                     initial={{ opacity: 0 }}
                                     animate={{ opacity: 1 }}
-                                    className="text-[11px] font-black uppercase tracking-[0.2em] relative z-10"
+                                    className="text-xl font-extrabold text-white tracking-tight leading-none"
+                                    style={{ fontFamily: '"Bricolage Grotesque", sans-serif' }}
                                 >
-                                    Terminate Session
+                                    Univ<span className="text-orange-500">GPT</span>
                                 </motion.span>
-                            )}
-                        </AnimatePresence>
-                        <div className="absolute inset-0 bg-destructive opacity-0 group-hover:opacity-[0.05] transition-opacity" />
-                    </button>
+                            </div>
 
-                    <AnimatePresence>
-                        {isSidebarOpen && (
-                            <motion.div
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                className="mt-6 p-5 rounded-[2rem] bg-gradient-to-br from-primary/5 to-transparent border border-primary/10 relative overflow-hidden group/card"
-                            >
-                                <div className="flex items-center gap-3 mb-4 relative z-10">
-                                    <div className="w-9 h-9 rounded-2xl bg-primary/20 flex items-center justify-center shrink-0 group-hover/card:scale-110 transition-transform">
-                                        <Sparkles className="w-4 h-4 text-primary" />
-                                    </div>
-                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">System Health</span>
-                                </div>
-                                <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden relative z-10">
-                                    <motion.div
-                                        initial={{ width: 0 }}
-                                        animate={{ width: "88%" }}
-                                        className="h-full bg-primary"
+                            {/* Nav Links */}
+                            <div className="flex flex-col gap-1">
+                                {currentNav.map((item) => (
+                                    <SidebarLink
+                                        key={item.href}
+                                        link={item}
+                                        active={location.pathname === item.href}
                                     />
-                                </div>
-                                <div className="mt-3 flex justify-between items-center relative z-10">
-                                    <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground">Encryption Level</span>
-                                    <span className="text-[8px] font-black uppercase tracking-widest text-emerald-500">Tier 4</span>
-                                </div>
-                                {/* Subtle grain texture overlay if needed, or just light */}
-                                <div className="absolute top-0 right-0 p-2 opacity-5">
-                                    <Zap className="w-10 h-10" />
-                                </div>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
-                </div>
-            </aside>
+                                ))}
+                            </div>
+                        </div>
 
-            {/* Main Content Area */}
-            <div className="flex-1 flex flex-col relative overflow-hidden">
-                {/* Sophisticated Header */}
-                <header
-                    className={cn(
-                        "h-24 flex items-center justify-between px-10 shrink-0 relative z-30 transition-all duration-500",
-                        scrolled ? "bg-background/80 backdrop-blur-2xl border-b border-primary/5 py-4" : "bg-transparent py-6"
-                    )}
-                >
-                    <div className="flex items-center gap-8">
-                        <button
-                            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                            className="w-12 h-12 flex items-center justify-center hover:bg-muted/50 rounded-2xl transition-all border border-transparent hover:border-primary/5 text-muted-foreground hover:text-primary"
-                        >
-                            {isSidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-                        </button>
-
-                        <div className="relative hidden lg:block group">
-                            <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-all group-focus-within:scale-110" />
-                            <input
-                                type="text"
-                                placeholder="Universal Index Search..."
-                                className="h-14 w-[400px] pl-14 pr-6 rounded-[1.5rem] border border-primary/5 bg-muted/30 focus:bg-background focus:ring-4 focus:ring-primary/5 focus:border-primary/20 outline-none transition-all text-[11px] font-bold uppercase tracking-widest placeholder:text-muted-foreground/30 shadow-inner"
+                        {/* Bottom: User + Logout */}
+                        <div className="flex flex-col gap-1">
+                            <SidebarLink
+                                link={{
+                                    label: 'Profile',
+                                    href: '/dashboard/profile',
+                                    icon: <ProfileAvatar size="md" />,
+                                }}
+                                active={location.pathname === '/dashboard/profile'}
+                            />
+                            <SidebarLink
+                                link={{
+                                    label: 'Sign out',
+                                    href: '#',
+                                    icon: <LogOut className="w-5 h-5 shrink-0" />,
+                                }}
+                                onClick={handleLogout}
+                                className="text-zinc-500 hover:text-red-400"
                             />
                         </div>
-                    </div>
+                    </SidebarBody>
+                </Sidebar>
+            </div>
 
-                    <div className="flex items-center gap-6">
-                        <div className="flex items-center gap-2">
-                            <button className="relative w-12 h-12 flex items-center justify-center hover:bg-muted/50 rounded-2xl transition-all group">
-                                <Bell className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
-                                <span className="absolute top-3.5 right-3.5 w-2 h-2 bg-primary rounded-full border-2 border-background animate-pulse" />
-                            </button>
-                            <button className="relative w-12 h-12 flex items-center justify-center hover:bg-muted/50 rounded-2xl transition-all group">
-                                <Globe className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
-                            </button>
-                        </div>
-
-                        <div className="h-10 w-[1px] bg-primary/10" />
-
-                        <div className="flex items-center gap-4 pl-2 group cursor-pointer">
-                            <div className="text-right hidden sm:block">
-                                <div className="text-[12px] font-black uppercase tracking-tighter leading-none mb-1 group-hover:text-primary transition-colors">{user?.full_name || 'System Identity'}</div>
-                                <div className="text-[8px] font-black uppercase tracking-[0.3em] text-primary/60">{user?.department || 'CORE HUB'}</div>
-                            </div>
-                            <div className="relative">
-                                <div className="w-13 h-13 rounded-3xl bg-card border-2 border-primary/10 flex items-center justify-center shadow-2xl transition-all group-hover:scale-110 group-hover:-rotate-3 overflow-hidden">
-                                    <User className="w-7 h-7 text-muted-foreground group-hover:text-primary transition-colors" />
+            {/* Content Area — with curved top-left corner */}
+            <div className="flex-1 flex flex-col min-w-0 pt-2 lg:pt-0">
+                <div className="flex-1 flex flex-col min-w-0 bg-zinc-950 rounded-tl-[32px] overflow-hidden">
+                    {/* Header — NOT sticky, NO blur, as requested */}
+                    <header className="h-20 flex items-center justify-between px-6 md:px-8 shrink-0 relative z-40">
+                        <div className="flex items-center gap-4">
+                            {/* Mobile Brand Toggle */}
+                            <button
+                                onClick={() => setSidebarOpen(true)}
+                                className="md:hidden flex items-center gap-3 shrink-0 active:scale-95 transition-all"
+                            >
+                                <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shrink-0 shadow-lg shadow-white/10">
+                                    <BrandLogo className="w-6 h-6 text-black" />
                                 </div>
-                                <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 border-2 border-background shadow-lg shadow-emerald-500/20" />
+                                <span
+                                    className="text-xl font-extrabold text-white tracking-tight"
+                                    style={{ fontFamily: '"Bricolage Grotesque", sans-serif' }}
+                                >
+                                    Univ<span className="text-orange-500">GPT</span>
+                                </span>
+                            </button>
+
+                            {/* Page Title - Desktop Only */}
+                            <div className="hidden md:flex items-center">
+                                <h2
+                                    className="text-xl font-extrabold text-white tracking-tight ml-4"
+                                    style={{ fontFamily: '"Bricolage Grotesque", sans-serif' }}
+                                >
+                                    {pageTitle}
+                                </h2>
                             </div>
                         </div>
-                    </div>
-                </header>
 
-                {/* Page Content */}
-                <main className="flex-1 overflow-y-auto bg-transparent px-10 pb-10 pt-4 custom-scrollbar relative z-20">
-                    <div className="max-w-7xl mx-auto">
+                        <div className="flex items-center gap-4">
+                            {/* Notification Bell */}
+                            <div className="relative">
+                                <button
+                                    onClick={() => setShowNotifications(!showNotifications)}
+                                    className="w-9 h-9 flex items-center justify-center text-zinc-500 hover:text-white transition-colors rounded-full hover:bg-white/[0.06] relative"
+                                >
+                                    <Bell className="w-[18px] h-[18px]" />
+                                    {unreadCount > 0 && (
+                                        <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-orange-500 rounded-full" />
+                                    )}
+                                </button>
+
+                                <AnimatePresence>
+                                    {showNotifications && (
+                                        <motion.div
+                                            initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                                            exit={{ opacity: 0, y: 8, scale: 0.96 }}
+                                            className="fixed sm:absolute right-4 left-4 sm:left-auto sm:right-0 top-20 sm:top-[calc(100%+0.5rem)] w-80 bg-zinc-900 border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-[100] origin-top-right"
+                                        >
+                                            <div className="px-4 py-3 border-b border-white/[0.06] flex items-center justify-between">
+                                                <span className="text-sm font-semibold text-white">Notifications</span>
+                                                <span className="text-[10px] text-orange-400 font-semibold">{unreadCount} new</span>
+                                            </div>
+                                            <div className="max-h-64 overflow-y-auto">
+                                                {notifications.map(n => (
+                                                    <div key={n.id} className={cn("px-4 py-3 hover:bg-white/[0.03] cursor-pointer border-b border-white/[0.04] last:border-0 transition-colors", n.unread && "bg-orange-500/[0.03]")}>
+                                                        <div className="flex items-start gap-3">
+                                                            {n.unread ? (
+                                                                <div className="w-1.5 h-1.5 rounded-full bg-orange-500 mt-1.5 shrink-0" />
+                                                            ) : (
+                                                                <div className="w-1.5 h-1.5 opacity-0 shrink-0" />
+                                                            )}
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className="text-xs text-zinc-300 leading-relaxed">{n.text}</p>
+                                                                <p className="text-[10px] text-zinc-600 mt-1">{n.time}</p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+                            </div>
+
+                            {/* Profile */}
+                            <button
+                                onClick={() => navigate('/dashboard/profile')}
+                                className="hover:scale-110 transition-transform"
+                            >
+                                <ProfileAvatar size="sm" />
+                            </button>
+                        </div>
+                    </header>
+
+                    {/* Native Scrollable Content */}
+                    <div className="flex-1 w-full mx-auto">
                         <AnimatePresence mode="wait">
                             <motion.div
                                 key={location.pathname}
-                                initial={{ opacity: 0, y: 15 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -15 }}
-                                transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                transition={{ duration: 0.15 }}
+                                className="h-full"
                             >
-                                {children}
+                                <Outlet />
                             </motion.div>
                         </AnimatePresence>
                     </div>
-                </main>
-
-                {/* Background ambient lighting */}
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full pointer-events-none opacity-20">
-                    <div className="absolute top-[10%] left-[20%] w-[30%] h-[30%] bg-primary/10 rounded-full blur-[120px]" />
-                    <div className="absolute bottom-[20%] right-[10%] w-[40%] h-[40%] bg-blue-500/5 rounded-full blur-[150px]" />
                 </div>
+                {/* Backdrop for notifications */}
+                {showNotifications && (
+                    <div className="fixed inset-0 z-[90]" onClick={() => setShowNotifications(false)} />
+                )}
             </div>
         </div>
     );

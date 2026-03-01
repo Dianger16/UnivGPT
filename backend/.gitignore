@@ -1,0 +1,24 @@
+# Python ignore
+__pycache__/
+*.pyc
+venv/
+.venv/
+env/
+.env
+
+# Tests
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Local data
+uploads/
+
+# IDE
+.vscode/
+.idea/
+
+# Local project files
+test_diagnostics.py
+diag_output.txt
+*.log

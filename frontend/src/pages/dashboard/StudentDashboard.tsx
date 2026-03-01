@@ -1,220 +1,206 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import {
-    Search, FileText, MessageSquare, Clock,
-    TrendingUp, Shield, HelpCircle, ArrowRight,
-    Brain, Sparkles, Database, Globe, Zap,
-    Cpu, Layers, Bookmark, Star
+    Calendar, CheckCircle2, ArrowUpRight, Sparkles,
+    Building2, Wallet, Bell, MapPin, Info, ChevronRight
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { useAuthStore } from '@/store/authStore';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
 import { Link } from 'react-router-dom';
+import { cn } from '@/lib/utils';
+import { useToastStore } from '@/store/toastStore';
 
-const StudentDashboard = () => {
-    const stats = [
-        { label: 'Neural Queries', value: '124', icon: MessageSquare, color: 'text-violet-500', bg: 'bg-violet-500/10' },
-        { label: 'Corpus Indexed', value: '14.2k', icon: Database, color: 'text-blue-500', bg: 'bg-blue-500/10' },
-        { label: 'Accuracy', value: '99.2%', icon: TrendingUp, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
-        { label: 'Latency', value: '142ms', icon: Zap, color: 'text-amber-500', bg: 'bg-amber-500/10' },
+export default function StudentDashboard() {
+    const { user } = useAuthStore();
+    const { showToast } = useToastStore();
+    const firstName = user?.full_name?.split(' ')[0] || 'Student';
+
+    const campusMetrics = [
+        { label: 'Attendance', value: '94%', change: 'Above 75%', icon: CheckCircle2, color: 'text-green-500' },
+        { label: 'Fee Status', value: 'Paid', change: 'Semester 4', icon: Wallet, color: 'text-orange-500' },
+        { label: 'Next Holiday', value: 'Oct 28', change: 'Diwali Break', icon: Calendar, color: 'text-blue-500' },
+        { label: 'Library Dues', value: '₹0.00', change: 'Clear', icon: Building2, color: 'text-purple-500' },
     ];
 
-    const recentQueries = [
-        { query: "Refund policy for Fall 2024", time: "2h ago", category: "FINANCE" },
-        { query: "How to apply for campus research?", time: "5h ago", category: "ACADEMIC" },
-        { query: "Library late fee structure", time: "1d ago", category: "LOGISTICS" },
+    const campusNotices = [
+        { title: 'Convocation Ceremony 2026', tag: 'Event', date: 'Posted 2h ago', priority: 'medium' },
+        { title: 'Update: Mandatory Cyber Security Seminar', tag: 'Admin', date: 'Deadline: Today', priority: 'high' },
+        { title: 'Hostel WiFi maintenance schedule', tag: 'Services', date: 'Posted Yesterday', priority: 'low' },
     ];
+
+    const handleAction = (name: string) => {
+        showToast(`${name} feature coming soon!`, "info");
+    };
 
     return (
-        <div className="space-y-12 pb-20">
-            {/* Elegant Welcome Hero */}
-            <div className="relative overflow-hidden rounded-[3rem] border border-primary/10 bg-card/40 backdrop-blur-xl p-12 md:p-16 group">
-                {/* Decorative background elements */}
-                <div className="absolute top-0 right-0 w-[50%] h-full bg-gradient-to-l from-primary/5 to-transparent pointer-events-none" />
-                <div className="absolute -top-24 -right-24 w-96 h-96 bg-primary/5 rounded-full blur-[120px] pointer-events-none group-hover:bg-primary/10 transition-all duration-1000" />
-
-                <div className="relative z-10 max-w-4xl space-y-8">
-                    <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="flex items-center gap-3"
-                    >
-                        <Badge variant="premium" className="px-4 py-1">v4.2 Neural Node</Badge>
-                        <div className="h-1 w-1 rounded-full bg-border" />
-                        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">Encryption Active</span>
-                    </motion.div>
-
-                    <div className="space-y-4">
-                        <motion.h1
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            className="text-5xl md:text-7xl font-black tracking-tighter leading-none uppercase"
-                        >
-                            Your <span className="text-primary italic">Intelligence</span> <br /> Command Hub.
-                        </motion.h1>
-                        <motion.p
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ delay: 0.2 }}
-                            className="text-xl text-muted-foreground font-semibold leading-relaxed max-w-2xl"
-                        >
-                            Direct access to the university knowledge corpus via proprietary neural retrieval.
-                            Get precise answers from thousands of verified documents instantly.
-                        </motion.p>
-                    </div>
-
-                    <div className="flex flex-wrap gap-5 pt-4">
-                        <Link to="/dashboard/chat">
-                            <Button size="lg" className="rounded-2xl h-14 px-10 bg-primary hover:bg-primary/90 text-[11px] font-black uppercase tracking-[0.2em] shadow-2xl shadow-primary/30 group">
-                                Initialize Query
-                                <Sparkles className="ml-3 w-4 h-4 transition-transform group-hover:rotate-12 group-hover:scale-110" />
-                            </Button>
-                        </Link>
-                        <Link to="/dashboard/documents">
-                            <Button size="lg" variant="outline" className="rounded-2xl h-14 px-10 border-primary/20 text-[11px] font-black uppercase tracking-[0.2em] glass hover:border-primary/40">
-                                Explore Corpus
-                            </Button>
-                        </Link>
-                    </div>
+        <div className="p-6 md:p-8 space-y-8 pb-20 overflow-y-auto h-full">
+            {/* Header Greeting */}
+            <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-white/[0.04]">
+                <div className="space-y-1">
+                    <h1 className="text-2xl font-extrabold text-white tracking-tight">
+                        Student Portal: <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-amber-400">{firstName}</span>
+                    </h1>
+                    <p className="text-zinc-500 text-sm">Welcome to the central navigation for your campus life.</p>
                 </div>
-            </div>
+                <div className="flex items-center gap-3">
+                    <Link to="/dashboard/chat">
+                        <Button className="grow sm:grow-0 bg-orange-600 hover:bg-orange-500 text-white font-bold px-6 h-12 rounded-2xl shadow-lg shadow-orange-500/20 transition-all active:scale-95 flex gap-2 text-sm">
+                            <Sparkles className="w-4 h-4" />
+                            Ask University Admin
+                        </Button>
+                    </Link>
+                </div>
+            </header>
 
-            {/* Core Stats Section */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
-                {stats.map((stat, i) => (
+            {/* Metrics Grid */}
+            <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {campusMetrics.map((m, i) => (
                     <motion.div
-                        key={stat.label}
+                        key={m.label}
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: i * 0.1 }}
+                        className="bg-white/[0.02] border border-white/[0.06] rounded-3xl p-5 hover:bg-white/[0.04] transition-all"
                     >
-                        <Card className="glass border-primary/5 overflow-hidden card-hover group cursor-default">
-                            <CardContent className="p-8">
-                                <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center mb-6 shadow-xl transition-transform group-hover:scale-110 group-hover:rotate-3", stat.bg)}>
-                                    <stat.icon className={cn("w-7 h-7", stat.color)} />
-                                </div>
-                                <div className="text-3xl font-black tracking-tighter mb-1">{stat.value}</div>
-                                <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground group-hover:text-primary transition-colors">{stat.label}</div>
-                            </CardContent>
-                        </Card>
+                        <div className="flex items-start justify-between mb-4">
+                            <div className={cn("p-2.5 rounded-xl bg-white/[0.03] border border-white/[0.05]", m.color)}>
+                                <m.icon className="w-5 h-5" />
+                            </div>
+                            <span className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest leading-none bg-white/[0.03] px-2 py-1 rounded-md">{m.change}</span>
+                        </div>
+                        <div>
+                            <p className="text-zinc-500 text-[11px] font-bold uppercase tracking-wider mb-1">{m.label}</p>
+                            <h3 className="text-2xl font-extrabold text-white">{m.value}</h3>
+                        </div>
                     </motion.div>
                 ))}
-            </div>
+            </section>
 
-            <div className="grid lg:grid-cols-12 gap-10">
-                {/* Intelligence Stream */}
-                <div className="lg:col-span-8 space-y-8">
-                    <div className="flex items-center justify-between px-2">
-                        <div className="flex items-center gap-3">
-                            <Layers className="w-5 h-5 text-primary" />
-                            <h2 className="text-[11px] font-black uppercase tracking-[0.3em] text-primary">Intelligence Stream</h2>
-                        </div>
-                        <Button variant="ghost" size="sm" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary rounded-xl">
-                            History Index <ArrowRight className="ml-2 w-3.5 h-3.5" />
-                        </Button>
-                    </div>
-
-                    <div className="space-y-4">
-                        {recentQueries.map((item, i) => (
-                            <motion.div
-                                key={i}
-                                initial={{ opacity: 0, x: -20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ delay: 0.4 + (i * 0.1) }}
-                                className="group glass border-transparent hover:border-primary/20 p-6 rounded-[2rem] flex items-center justify-between transition-all cursor-pointer relative overflow-hidden"
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* Left Column: Notices & Policies */}
+                <div className="lg:col-span-2 flex flex-col gap-8">
+                    <div className="bg-white/[0.02] border border-white/[0.06] rounded-[2rem] p-6 flex flex-col flex-1">
+                        <div className="flex items-center justify-between mb-6">
+                            <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                                <Bell className="w-4 h-4 text-orange-400" />
+                                Official Notices
+                            </h3>
+                            <Button
+                                variant="ghost"
+                                onClick={() => handleAction("Campus Board")}
+                                className="text-[10px] font-black tracking-widest uppercase text-zinc-500 hover:text-orange-400 transition-colors h-auto p-0"
                             >
-                                <div className="flex items-center gap-6 relative z-10">
-                                    <div className="h-14 w-14 rounded-2xl bg-muted/50 border flex items-center justify-center shrink-0 group-hover:bg-primary/5 transition-colors">
-                                        <Brain className="w-6 h-6 text-muted-foreground group-hover:text-primary transition-all group-hover:scale-110" />
-                                    </div>
-                                    <div>
-                                        <div className="flex items-center gap-3 mb-1">
-                                            <Badge className="bg-muted text-[8px] tracking-normal font-bold rounded-md h-4 px-1.5">{item.category}</Badge>
-                                            <span className="text-[10px] font-black text-muted-foreground/60 uppercase tracking-widest">{item.time}</span>
+                                Campus Board
+                            </Button>
+                        </div>
+                        <div className="space-y-3 flex-1">
+                            {campusNotices.map((n, i) => (
+                                <motion.div
+                                    key={i}
+                                    initial={{ opacity: 0, x: -20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    transition={{ delay: 0.4 + (i * 0.1) }}
+                                    className="group flex items-center justify-between p-4 bg-white/[0.03] border border-white/[0.06] rounded-2xl hover:bg-white/[0.05] hover:border-white/[0.1] transition-all"
+                                >
+                                    <div className="flex items-center gap-4">
+                                        <div className={cn(
+                                            "w-10 h-10 rounded-xl flex items-center justify-center border transition-colors",
+                                            n.priority === 'high' ? "bg-red-500/10 border-red-500/20 text-red-500 group-hover:bg-red-500/20" :
+                                                n.priority === 'medium' ? "bg-orange-500/10 border-orange-500/20 text-orange-500 group-hover:bg-orange-500/20" :
+                                                    "bg-blue-500/10 border-blue-500/20 text-blue-500 group-hover:bg-blue-500/20"
+                                        )}>
+                                            <Info className="w-4 h-4" />
                                         </div>
-                                        <div className="text-base font-bold tracking-tight text-foreground/90 group-hover:text-foreground transition-colors">{item.query}</div>
+                                        <div>
+                                            <h4 className="text-sm font-bold text-white group-hover:text-orange-400 transition-colors">{n.title}</h4>
+                                            <div className="flex items-center gap-2 mt-0.5">
+                                                <span className="text-[10px] text-zinc-600 font-bold uppercase tracking-widest">{n.tag}</span>
+                                                <span className="w-1 h-1 rounded-full bg-zinc-800" />
+                                                <span className="text-[10px] text-zinc-500 font-medium">{n.date}</span>
+                                            </div>
+                                        </div>
                                     </div>
-                                </div>
-                                <div className="w-10 h-10 rounded-full bg-primary/5 flex items-center justify-center opacity-0 scale-90 group-hover:opacity-100 group-hover:scale-100 transition-all relative z-10">
-                                    <ArrowRight className="w-5 h-5 text-primary" />
-                                </div>
-                                {/* Subtle background fill on hover */}
-                                <div className="absolute inset-0 bg-primary/0 group-hover:bg-primary/[0.02] transition-colors" />
-                            </motion.div>
-                        ))}
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handleAction("Notice View")}
+                                        className="text-zinc-600 hover:text-white hover:bg-white/5 group-hover:text-orange-400 transition-colors uppercase text-[10px] font-bold tracking-widest shrink-0 ml-2"
+                                    >
+                                        View <ArrowUpRight className="w-4 h-4 ml-1" />
+                                    </Button>
+                                </motion.div>
+                            ))}
+                        </div>
                     </div>
 
-                    {/* Quick Access Grid */}
-                    <div className="grid sm:grid-cols-2 gap-6 pt-4">
-                        <Card className="glass border-primary/5 rounded-[2.5rem] p-8 card-hover cursor-pointer group">
-                            <Bookmark className="w-8 h-8 text-violet-500 mb-6 group-hover:scale-110 transition-transform" />
-                            <h3 className="text-xl font-black tracking-tighter mb-2">Saved Insights</h3>
-                            <p className="text-xs font-semibold text-muted-foreground leading-relaxed italic">Access your bookmarked neural responses and source citations.</p>
-                        </Card>
-                        <Card className="glass border-primary/5 rounded-[2.5rem] p-8 card-hover cursor-pointer group">
-                            <Star className="w-8 h-8 text-amber-500 mb-6 group-hover:scale-110 transition-transform" />
-                            <h3 className="text-xl font-black tracking-tighter mb-2">Academic Roadmap</h3>
-                            <p className="text-xs font-semibold text-muted-foreground leading-relaxed italic">AI-generated course recommendations based on campus data.</p>
-                        </Card>
+                    {/* Policy Expert Card */}
+                    <div className="bg-gradient-to-r from-zinc-900 to-black border border-white/[0.06] rounded-[2rem] p-8 relative overflow-hidden group shadow-2xl shrink-0">
+                        <div className="absolute -right-10 -top-10 w-40 h-40 bg-orange-500/5 blur-[80px] rounded-full" />
+                        <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
+                            <div className="space-y-2 text-center md:text-left">
+                                <div className="flex items-center justify-center md:justify-start gap-2 mb-2">
+                                    <Building2 className="w-5 h-5 text-orange-400" />
+                                    <span className="text-[10px] font-bold text-orange-500 uppercase tracking-widest">University Policy Expert</span>
+                                </div>
+                                <h3 className="text-2xl font-black text-white leading-tight">Confused about campus rules?</h3>
+                                <p className="text-zinc-400 text-sm max-w-sm">Ask about refund policies, hostel timings, bus passes, and certificate applications.</p>
+                            </div>
+                            <Link to="/dashboard/chat" className="shrink-0">
+                                <Button className="bg-white text-black hover:bg-zinc-200 h-14 px-8 rounded-2xl font-extrabold transition-all hover:scale-105 active:scale-95 shadow-xl shadow-black/20 text-sm">
+                                    ASK ADMIN AI
+                                </Button>
+                            </Link>
+                        </div>
                     </div>
                 </div>
 
-                {/* Sidebar Utilities */}
-                <div className="lg:col-span-4 space-y-10">
-                    <div className="space-y-6">
-                        <h2 className="text-[11px] font-black uppercase tracking-[0.3em] text-primary px-2">Knowledge Pulse</h2>
+                {/* Right Column: Schedule */}
+                <div className="flex flex-col gap-8">
+                    <div className="bg-white/[0.02] border border-white/[0.06] rounded-[2rem] p-6 flex flex-col flex-1">
+                        <div className="flex items-center justify-between mb-2">
+                            <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                                <Calendar className="w-4 h-4 text-orange-400" />
+                                Daily Schedule
+                            </h3>
+                            <span className="text-[10px] font-bold text-zinc-600">OCT 22</span>
+                        </div>
 
-                        <Card className="bg-primary border-transparent text-primary-foreground shadow-2xl shadow-primary/30 rounded-[2.5rem] overflow-hidden relative group">
-                            {/* Decorative graphics */}
-                            <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
-                                <Cpu className="w-20 h-20" />
-                            </div>
-                            <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-white/10 rounded-full blur-3xl" />
-
-                            <CardHeader className="p-10 pb-4 relative z-10">
-                                <div className="flex items-center gap-2 mb-4">
-                                    <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
-                                    <span className="text-[9px] font-black uppercase tracking-widest text-white/70">Optimization Level 5</span>
+                        <div className="space-y-4">
+                            {[
+                                { time: '10:00 AM', event: 'CS301 (Hall RL-301)', type: 'Class', active: true },
+                                { time: '01:30 PM', event: 'Math Seminar (Audit-A)', type: 'Workshop', active: false },
+                                { time: '04:00 PM', event: 'Sports Practice', type: 'Extra', active: false },
+                            ].map((item, i) => (
+                                <div key={i} className={cn(
+                                    "relative pl-4 border-l-2 py-1",
+                                    item.active ? "border-orange-500" : "border-zinc-800"
+                                )}>
+                                    <p className={cn("text-[10px] font-bold uppercase", item.active ? "text-orange-500" : "text-zinc-600")}>{item.time}</p>
+                                    <h4 className="text-sm font-bold text-white mt-0.5">{item.event}</h4>
+                                    <div className="flex items-center gap-2 mt-1">
+                                        <span className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest">{item.type}</span>
+                                    </div>
                                 </div>
-                                <CardTitle className="text-3xl font-black tracking-tighter mb-2">Deep Narrative Search</CardTitle>
-                            </CardHeader>
-                            <CardContent className="px-10 pb-10 space-y-8 relative z-10">
-                                <p className="text-[13px] font-semibold leading-relaxed text-white/90">
-                                    Our engine understands intent. Instead of keywords, type full scenarios like
-                                    <span className="italic block mt-3 p-3 bg-white/10 rounded-xl border border-white/10">"I missed the research deadline because of a medical emergency, what are my options?"</span>
-                                </p>
-                                <Button className="w-full rounded-2xl bg-white text-primary hover:bg-white/90 font-black text-[10px] uppercase tracking-widest h-14 shadow-xl shadow-primary/10">
-                                    View Protocol Docs
-                                </Button>
-                            </CardContent>
-                        </Card>
+                            ))}
+                        </div>
+
+                        <Link to="/dashboard/courses" className="block mt-auto">
+                            <Button variant="outline" className="w-full border-white/[0.06] bg-white/[0.02] text-zinc-400 hover:text-white rounded-xl h-12 font-bold text-xs mt-4 transition-all group/cal">
+                                VIEW FULL CALENDAR <ChevronRight className="w-4 h-4 ml-2 text-zinc-600 group-hover/cal:text-orange-400 transition-colors" />
+                            </Button>
+                        </Link>
                     </div>
 
-                    <Card className="glass border-primary/10 rounded-[2.5rem] p-10 overflow-hidden relative">
-                        <div className="absolute top-0 right-0 p-6 opacity-5">
-                            <Shield className="w-16 h-16" />
-                        </div>
-                        <div className="flex items-center gap-5 mb-6">
-                            <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center">
-                                <Shield className="w-6 h-6 text-emerald-500" />
-                            </div>
-                            <div>
-                                <h4 className="text-[11px] font-black uppercase tracking-widest">Privacy Matrix</h4>
-                                <div className="flex items-center gap-1.5 mt-0.5">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-                                    <span className="text-[9px] text-emerald-500 font-black uppercase tracking-widest">Active & Shielded</span>
-                                </div>
-                            </div>
-                        </div>
-                        <p className="text-[11px] text-muted-foreground leading-relaxed font-semibold italic">
-                            Identified as Authorized Student Node. All queries are anonymized via double-blind vector masking and processed using end-to-end TLS 1.3 encryption.
+                    <div className="bg-orange-600/[0.03] border border-orange-500/10 rounded-[2rem] p-8 text-center relative overflow-hidden">
+                        <div className="absolute -bottom-10 -left-10 w-24 h-24 bg-orange-500/5 blur-3xl rounded-full" />
+                        <MapPin className="w-6 h-6 text-orange-500 mx-auto mb-3" />
+                        <h4 className="text-[10px] font-bold text-orange-500 uppercase tracking-widest mb-1.5">Campus Explorer</h4>
+                        <p className="text-[11px] text-zinc-500 leading-relaxed font-medium">
+                            Not sure where your next lab is? Type "Where is RL-301?" in the AI Chat.
                         </p>
-                    </Card>
+                    </div>
                 </div>
             </div>
         </div>
     );
-};
-
-export default StudentDashboard;
+}

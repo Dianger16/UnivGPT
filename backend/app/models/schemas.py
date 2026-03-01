@@ -4,12 +4,12 @@ Request/response schemas for all API endpoints.
 """
 
 from pydantic import BaseModel, Field
-from typing import Optional, Any
-from datetime import datetime
+from typing import Optional
 from enum import Enum
 
 
 # ─── Enums ───
+
 
 class UserRole(str, Enum):
     STUDENT = "student"
@@ -26,6 +26,7 @@ class DocType(str, Enum):
 
 # ─── Auth Models ───
 
+
 class InitiateSignupRequest(BaseModel):
     email: str
     password: str
@@ -33,12 +34,15 @@ class InitiateSignupRequest(BaseModel):
     department: Optional[str] = None
     role: UserRole = UserRole.STUDENT
 
+
 class VerifySignupRequest(BaseModel):
     email: str
     otp: str
 
+
 class ForgotPasswordRequest(BaseModel):
     email: str
+
 
 class ResetPasswordRequest(BaseModel):
     email: str
@@ -68,6 +72,16 @@ class UserProfile(BaseModel):
     created_at: Optional[str] = None
 
 
+class SignupResponse(BaseModel):
+    message: str
+    email: str
+
+
+class MessageResponse(BaseModel):
+    message: str
+    status: str = "success"
+
+
 class AuthResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
@@ -75,6 +89,7 @@ class AuthResponse(BaseModel):
 
 
 # ─── Document Models ───
+
 
 class DocumentUploadMeta(BaseModel):
     doc_type: DocType
@@ -102,6 +117,7 @@ class DocumentListResponse(BaseModel):
 
 
 # ─── Agent / Chat Models ───
+
 
 class AgentQueryRequest(BaseModel):
     query: str
@@ -141,6 +157,7 @@ class ConversationListResponse(BaseModel):
 
 # ─── Audit Models ───
 
+
 class AuditLogEntry(BaseModel):
     id: str
     user_id: Optional[str] = None
@@ -157,6 +174,7 @@ class AuditLogListResponse(BaseModel):
 
 
 # ─── Health ───
+
 
 class HealthResponse(BaseModel):
     status: str = "ok"

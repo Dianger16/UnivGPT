@@ -21,7 +21,7 @@ export function NavBar({ items, className }: NavBarProps) {
 
     useEffect(() => {
         const handleHashChange = () => {
-            const hash = window.location.hash || '#'
+            const hash = window.location.hash || '#top'
             const currentItem = items.find(item => item.url === hash)
             if (currentItem) setActiveTab(currentItem.name)
         }
@@ -34,11 +34,11 @@ export function NavBar({ items, className }: NavBarProps) {
     return (
         <div
             className={cn(
-                "fixed bottom-6 sm:top-6 left-1/2 -translate-x-1/2 z-[100]",
+                "z-[100]",
                 className,
             )}
         >
-            <div className="flex items-center gap-1 bg-background/60 border border-border/50 backdrop-blur-xl py-1.5 px-1.5 rounded-full shadow-[0_8px_32px_rgba(0,0,0,0.1)]">
+            <div className="flex items-center gap-1 bg-white/[0.04] border border-white/[0.08] backdrop-blur-2xl py-1 px-1 rounded-full">
                 {items.map((item) => {
                     const Icon = item.icon
                     const isActive = activeTab === item.name
@@ -49,31 +49,27 @@ export function NavBar({ items, className }: NavBarProps) {
                             href={item.url}
                             onClick={() => setActiveTab(item.name)}
                             className={cn(
-                                "relative cursor-pointer text-sm font-semibold px-5 py-2 rounded-full transition-all duration-300",
-                                "text-foreground/50 hover:text-foreground",
-                                isActive && "text-primary",
+                                "relative cursor-pointer px-5 py-2 rounded-full transition-all duration-300",
+                                isActive
+                                    ? "text-orange-500 font-bold"
+                                    : "text-zinc-400 hover:text-white hover:bg-white/[0.02]",
                             )}
                         >
-                            <span className="hidden md:inline uppercase tracking-widest text-[9px] font-extrabold">{item.name}</span>
+                            <span className="hidden md:inline text-sm font-medium">{item.name}</span>
                             <span className="md:hidden">
-                                <Icon size={16} strokeWidth={2.5} />
+                                <Icon size={16} strokeWidth={2} />
                             </span>
                             {isActive && (
                                 <motion.div
-                                    layoutId="lamp"
-                                    className="absolute inset-0 w-full bg-primary/10 rounded-full -z-10"
+                                    layoutId="nav-pill"
+                                    className="absolute inset-0 bg-orange-500/10 rounded-full -z-10"
                                     initial={false}
                                     transition={{
                                         type: "spring",
-                                        stiffness: 300,
-                                        damping: 30,
+                                        stiffness: 400,
+                                        damping: 35,
                                     }}
-                                >
-                                    <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-8 h-1 bg-primary rounded-t-full">
-                                        <div className="absolute w-12 h-6 bg-primary/30 rounded-full blur-md -top-2 -left-2" />
-                                        <div className="absolute w-8 h-6 bg-primary/20 rounded-full blur-sm -top-1" />
-                                    </div>
-                                </motion.div>
+                                />
                             )}
                         </a>
                     )

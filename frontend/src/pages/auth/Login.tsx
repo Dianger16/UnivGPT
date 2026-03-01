@@ -1,181 +1,267 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useAuthStore } from '@/store/authStore';
-import { GraduationCap, Mail, Lock, Loader2, ArrowLeft, ShieldCheck, Sparkles } from 'lucide-react';
+import { AuthUI, Label, Input, PasswordInput, Button, OTPInput } from '@/components/ui/auth-fuse';
+import { Loader2 } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { BrandLogo } from '@/components/ui/BrandLogo';
+import { AnimatePresence } from 'framer-motion';
+import { useToastStore } from '@/store/toastStore';
 
-/**
- * Dummy Credentials:
- * Admin: admin@unigpt.edu / admin-password-123
- * Faculty: faculty@unigpt.edu / faculty-password-123
- * Student: student@unigpt.edu / student-password-123
- */
 export default function Login() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const { login, isLoading, error, clearError } = useAuthStore();
+    const [newPassword, setNewPassword] = useState('');
+    const [otp, setOtp] = useState('');
+    const [view, setView] = useState<'login' | 'forgot' | 'otp' | 'reset'>('login');
+    const { showToast } = useToastStore();
+    const { login, forgotPassword, resetPassword, googleAuth, isLoading, error, clearError, token } = useAuthStore();
     const navigate = useNavigate();
+
+    useEffect(() => {
+        if (token) navigate('/dashboard');
+    }, [token, navigate]);
+
 
     useEffect(() => {
         clearError();
     }, [clearError]);
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleLoginSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
             await login(email, password);
             navigate('/dashboard');
-        } catch (err) {
-            // Error managed by store
+        } catch (err: any) {
+            showToast(err.message || "Invalid credentials.");
         }
     };
 
-    return (
-        <div className="min-h-screen flex items-center justify-center px-4 bg-background relative overflow-hidden glow-mesh">
-            {/* Background elements */}
-            <div className="absolute top-0 left-0 w-full h-full pointer-events-none overflow-hidden">
-                <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/10 rounded-full blur-[120px]" />
-                <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-500/10 rounded-full blur-[120px]" />
-            </div>
+    const handleForgotSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        try {
+            await forgotPassword(email);
+            setView('otp');
+            showToast("Recovery email has been sent.", "success");
+        } catch (err: any) {
+            showToast(err.message || "Failed to send recovery email.");
+        }
+    };
 
-            <motion.div
-                className="w-full max-w-[460px] relative z-10"
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.5 }}
-            >
-                <div className="text-center mb-10">
-                    <Link to="/" className="inline-flex items-center gap-3 transition-transform hover:scale-105">
-                        <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center shadow-2xl shadow-primary/20">
-                            <GraduationCap className="w-7 h-7 text-primary-foreground" />
-                        </div>
-                        <div className="text-left">
-                            <span className="text-2xl font-black tracking-tighter block leading-none">UniGPT</span>
-                            <span className="text-[10px] uppercase tracking-[0.3em] font-black text-muted-foreground">Workspace</span>
-                        </div>
-                    </Link>
-                </div>
+    const handleOtpSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        // Simulate OTP verification
+        if (otp.length === 6) {
+            setView('reset');
+        }
+    };
 
-                <Card className="glass border-primary/10 shadow-2xl rounded-[2.5rem] overflow-hidden">
-                    <CardHeader className="text-center pt-10 pb-6">
-                        <motion.div
-                            initial={{ y: 10, opacity: 0 }}
-                            animate={{ y: 0, opacity: 1 }}
-                            transition={{ delay: 0.2 }}
+    const handleResetSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        try {
+            await resetPassword(email, otp, newPassword);
+            showToast("Password updated successfully! Please sign in.", "success");
+            setView('login');
+            setPassword('');
+            setOtp('');
+            setNewPassword('');
+        } catch (err: any) {
+            showToast(err.message || "Error updating password.");
+        }
+    };
+
+    const handleGoogleAuth = async () => {
+        try {
+            await googleAuth();
+        } catch (err: any) {
+            showToast(err.message || "Google authentication failed.");
+        }
+    };
+
+
+    if (view === 'forgot') {
+        return (
+            <AuthUI isSignIn={true} onToggle={() => navigate('/auth/signup')} onGoogleClick={handleGoogleAuth}>
+                <form onSubmit={handleForgotSubmit} className="flex flex-col gap-6">
+                    <div className="flex flex-col items-center gap-2 text-center">
+                        <div className="w-10 h-10 bg-orange-500/10 border border-orange-500/20 rounded-2xl flex items-center justify-center mb-1 shadow-[0_0_20px_rgba(249,115,22,0.1)]">
+                            <BrandLogo className="w-5 h-5 text-orange-400" />
+                        </div>
+                        <h1 className="text-2xl font-extrabold tracking-tight text-white">Reset Password</h1>
+                        <p className="text-sm text-zinc-500 max-w-[280px]">Enter your email to receive a recovery OTP</p>
+                    </div>
+
+                    <div className="grid gap-4">
+                        <div className="grid gap-1.5">
+                            <Label htmlFor="forgot-email" className="text-zinc-400 font-medium ml-1">Email</Label>
+                            <Input
+                                id="forgot-email"
+                                type="email"
+                                placeholder="you@university.edu"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                required
+                            />
+                        </div>
+
+                        <Button
+                            type="submit"
+                            className="mt-2 h-11 text-sm font-bold bg-white text-black hover:bg-zinc-200 transition-all rounded-xl shadow-[0_0_20px_rgba(255,255,255,0.1)]"
                         >
-                            <CardTitle className="text-3xl font-black tracking-tighter mb-2">Welcome Back</CardTitle>
-                            <CardDescription className="text-sm font-medium">
-                                Secure access to your university intelligence
-                            </CardDescription>
-                        </motion.div>
-                    </CardHeader>
-                    <CardContent className="px-10 pb-12">
-                        {error && (
-                            <motion.div
-                                initial={{ opacity: 0, y: -10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                className="mb-6 p-4 rounded-2xl bg-destructive/10 border border-destructive/20 flex items-center gap-3"
-                            >
-                                <div className="w-2 h-2 rounded-full bg-destructive" />
-                                <p className="text-[11px] font-bold uppercase tracking-wider text-destructive">
-                                    {error}
-                                </p>
-                            </motion.div>
-                        )}
-
-                        <form onSubmit={handleSubmit} className="space-y-6">
-                            <div className="space-y-4">
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Email Identity</label>
-                                    <div className="relative group">
-                                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground transition-colors group-focus-within:text-primary" />
-                                        <Input
-                                            type="email"
-                                            placeholder="you@university.edu"
-                                            className="h-14 pl-12 rounded-2xl border-border/50 bg-background/50 focus:bg-background transition-all"
-                                            value={email}
-                                            onChange={(e) => setEmail(e.target.value)}
-                                            required
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <div className="flex justify-between items-center ml-1">
-                                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Passphrase</label>
-                                        <Link to="/auth/forgot-password" className="text-[10px] font-black uppercase tracking-widest text-primary hover:underline">
-                                            Recover?
-                                        </Link>
-                                    </div>
-                                    <div className="relative group">
-                                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground transition-colors group-focus-within:text-primary" />
-                                        <Input
-                                            type="password"
-                                            placeholder="••••••••••••"
-                                            className="h-14 pl-12 rounded-2xl border-border/50 bg-background/50 focus:bg-background transition-all"
-                                            value={password}
-                                            onChange={(e) => setPassword(e.target.value)}
-                                            required
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-
-                            <Button
-                                type="submit"
-                                className="w-full h-14 rounded-full bg-primary hover:bg-primary/90 shadow-xl shadow-primary/20 text-[11px] font-black uppercase tracking-[0.2em]"
-                                disabled={isLoading}
-                            >
-                                {isLoading ? (
-                                    <>
-                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                        Authenticating...
-                                    </>
-                                ) : (
-                                    'Initialize Session'
-                                )}
-                            </Button>
-
-                            <div className="relative py-2">
-                                <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border/50" /></div>
-                                <div className="relative flex justify-center text-[10px] uppercase font-bold tracking-widest"><span className="bg-card px-4 text-muted-foreground">Secure Portal</span></div>
-                            </div>
-
-                            <div className="text-center space-y-4">
-                                <p className="text-xs font-semibold text-muted-foreground">
-                                    New to the network?{' '}
-                                    <Link to="/auth/signup" className="text-primary hover:underline font-black">
-                                        Register Device
-                                    </Link>
-                                </p>
-                            </div>
-                        </form>
-                    </CardContent>
-                </Card>
-
-                <div className="mt-8 flex items-center justify-center gap-6 opacity-40">
-                    <div className="flex items-center gap-2">
-                        <ShieldCheck className="w-4 h-4" />
-                        <span className="text-[10px] font-bold uppercase tracking-widest hover:opacity-100 transition-opacity">SSO Protected</span>
+                            Send OTP Code
+                        </Button>
+                        <button type="button" onClick={() => setView('login')} className="text-xs text-zinc-500 hover:text-white transition-colors mt-2">
+                            Back to Sign In
+                        </button>
                     </div>
-                    <div className="w-1 h-1 rounded-full bg-muted-foreground" />
-                    <div className="flex items-center gap-2">
-                        <Sparkles className="w-4 h-4" />
-                        <span className="text-[10px] font-bold uppercase tracking-widest hover:opacity-100 transition-opacity">AI Integrated</span>
+                </form>
+            </AuthUI>
+        );
+    }
+
+    if (view === 'otp') {
+        return (
+            <AuthUI isSignIn={true} onToggle={() => navigate('/auth/signup')} onGoogleClick={handleGoogleAuth}>
+                <form onSubmit={handleOtpSubmit} className="flex flex-col gap-8">
+                    <div className="flex flex-col items-center gap-3 text-center">
+                        <div className="w-10 h-10 bg-orange-500/10 border border-orange-500/20 rounded-2xl flex items-center justify-center mb-1 shadow-[0_0_20px_rgba(249,115,22,0.1)]">
+                            <BrandLogo className="w-5 h-5 text-orange-400" />
+                        </div>
+                        <h1 className="text-2xl font-extrabold tracking-tight text-white">Enter OTP</h1>
+                        <div className="text-sm text-zinc-500 flex flex-col gap-1 items-center">
+                            We sent a code to
+                            <span className="text-white font-medium">{email}</span>
+                        </div>
                     </div>
+
+                    <div className="grid gap-6">
+                        <div className="grid gap-2">
+                            <Label htmlFor="reset-otp" className="text-zinc-400 font-medium ml-1">Secure OTP Code</Label>
+                            <OTPInput value={otp} onChange={setOtp} />
+                        </div>
+
+                        <Button
+                            type="submit"
+                            className="mt-2 h-11 text-sm font-bold bg-white text-black hover:bg-zinc-200 transition-all rounded-xl shadow-[0_0_20px_rgba(255,255,255,0.1)]"
+                            disabled={otp.length !== 6}
+                        >
+                            Verify Security Code
+                        </Button>
+                    </div>
+                </form>
+            </AuthUI>
+        );
+    }
+
+    if (view === 'reset') {
+        return (
+            <AuthUI isSignIn={true} onToggle={() => navigate('/auth/signup')} onGoogleClick={handleGoogleAuth}>
+                <form onSubmit={handleResetSubmit} className="flex flex-col gap-8">
+                    <div className="flex flex-col items-center gap-3 text-center">
+                        <div className="w-10 h-10 bg-orange-500/10 border border-orange-500/20 rounded-2xl flex items-center justify-center mb-1 shadow-[0_0_20px_rgba(249,115,22,0.1)]">
+                            <BrandLogo className="w-5 h-5 text-orange-400" />
+                        </div>
+                        <h1 className="text-2xl font-extrabold tracking-tight text-white">Create New Password</h1>
+                        <div className="text-sm text-zinc-500 flex flex-col gap-1 items-center">
+                            Set a strong secure phrase for your account
+                        </div>
+                    </div>
+
+                    <div className="grid gap-6">
+                        <PasswordInput
+                            label="New Password"
+                            placeholder="••••••••"
+                            value={newPassword}
+                            onChange={(e) => setNewPassword(e.target.value)}
+                            required
+                        />
+
+                        <Button
+                            type="submit"
+                            className="mt-2 h-11 text-sm font-bold bg-orange-600 hover:bg-orange-500 text-white transition-all rounded-xl shadow-[0_0_20px_rgba(249,115,22,0.2)]"
+                            disabled={newPassword.length < 6}
+                        >
+                            Reset Password & Sign In
+                        </Button>
+                    </div>
+                </form>
+            </AuthUI>
+        );
+    }
+
+    return (
+        <AuthUI
+            isSignIn={true}
+            onToggle={() => navigate('/auth/signup')}
+            onGoogleClick={handleGoogleAuth}
+        >
+            <form onSubmit={handleLoginSubmit} autoComplete="on" className="flex flex-col gap-6">
+                <div className="flex flex-col items-center gap-2 text-center">
+                    <div className="w-10 h-10 bg-orange-500/10 border border-orange-500/20 rounded-2xl flex items-center justify-center mb-1 shadow-[0_0_20px_rgba(249,115,22,0.1)]">
+                        <BrandLogo className="w-5 h-5 text-orange-400" />
+                    </div>
+                    <h1 className="text-2xl font-extrabold tracking-tight text-white">Welcome Back</h1>
+                    <p className="text-sm text-zinc-500 max-w-[280px]">Sign in to your UnivGPT account</p>
                 </div>
 
-                <Link
-                    to="/"
-                    className="mt-12 flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground hover:text-foreground transition-colors group"
-                >
-                    <ArrowLeft className="w-3 h-3 transition-transform group-hover:-translate-x-1" />
-                    Back to Main Portal
-                </Link>
-            </motion.div>
-        </div>
+                {error && (
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-xs text-red-400 text-center font-medium"
+                    >
+                        {error}
+                    </motion.div>
+                )}
+
+                <div className="grid gap-4">
+                    <div className="grid gap-1.5">
+                        <Label htmlFor="email" className="text-zinc-400 font-medium ml-1">Email</Label>
+                        <Input
+                            id="email"
+                            type="email"
+                            placeholder="you@university.edu"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            required
+                        />
+                    </div>
+
+                    <div className="space-y-1">
+                        <PasswordInput
+                            label="Password"
+                            placeholder="••••••••"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            required
+                        />
+                        <div className="flex justify-end">
+                            <button
+                                type="button"
+                                onClick={() => setView('forgot')}
+                                className="text-[11px] font-medium text-zinc-500 hover:text-orange-400 transition-colors"
+                            >
+                                Forgot password?
+                            </button>
+                        </div>
+                    </div>
+
+                    <Button
+                        type="submit"
+                        className="mt-2 h-11 text-sm font-bold bg-white text-black hover:bg-zinc-200 transition-all rounded-xl shadow-[0_0_20px_rgba(255,255,255,0.1)]"
+                        disabled={isLoading}
+                    >
+                        {isLoading ? (
+                            <>
+                                <Loader2 className="mr-3 h-5 w-5 animate-spin" />
+                                Signing in...
+                            </>
+                        ) : (
+                            'Sign In'
+                        )}
+                    </Button>
+                </div>
+            </form>
+        </AuthUI>
     );
 }

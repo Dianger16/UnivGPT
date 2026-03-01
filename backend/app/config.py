@@ -1,11 +1,19 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import List
 
+
 class Settings(BaseSettings):
     # App Config
     project_name: str = "UniGPT"
     environment: str = "development"
-    cors_origins: List[str] = ["http://localhost:5173", "http://localhost:3000"]
+    cors_origins: List[str] = [
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:4173",
+        "http://127.0.0.1:4173",
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ]
 
     # Supabase (Auth & Core Data)
     supabase_url: str = ""
@@ -28,10 +36,17 @@ class Settings(BaseSettings):
     # Dev flags
     mock_llm: bool = False
 
+    # SMTP (Email)
+    smtp_host: str = "smtp.gmail.com"
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: str = ""
+    smtp_from_email: str = ""
+    smtp_from_name: str = "UniGPT Support"
+
     model_config = SettingsConfigDict(
-        env_file=".env",
-        env_file_encoding="utf-8",
-        extra="ignore"
+        env_file=".env", env_file_encoding="utf-8", extra="ignore"
     )
+
 
 settings = Settings()

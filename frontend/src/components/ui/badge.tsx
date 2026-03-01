@@ -9,10 +9,10 @@ const Badge = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivEleme
         secondary: "bg-secondary text-secondary-foreground",
         destructive: "bg-destructive text-destructive-foreground",
         outline: "border border-primary/20 bg-background/50 text-foreground",
-        student: "bg-blue-500/10 text-blue-500 border border-blue-500/20",
-        faculty: "bg-violet-500/10 text-violet-500 border border-violet-500/20",
+        student: "bg-orange-500/10 text-orange-400 border border-orange-500/20",
+        faculty: "bg-zinc-500/10 text-zinc-400 border border-zinc-500/20",
         admin: "bg-foreground text-background font-black",
-        premium: "bg-gradient-to-r from-primary to-blue-600 text-white border-none shadow-lg",
+        premium: "bg-gradient-to-r from-orange-500 to-amber-600 text-white border-none shadow-lg shadow-orange-500/20",
         glass: "bg-white/5 backdrop-blur-md border border-white/10 text-foreground"
     };
 

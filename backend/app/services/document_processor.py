@@ -5,9 +5,7 @@ Stores chunks in Pinecone for vector search.
 """
 
 import io
-import uuid
 import logging
-from typing import Optional
 
 from app.config import settings
 from app.services.pinecone_client import pinecone_client
@@ -17,8 +15,10 @@ logger = logging.getLogger(__name__)
 
 # ─── Text Extraction ───
 
+
 def extract_text_from_pdf(file_bytes: bytes) -> str:
     import pdfplumber
+
     text_parts = []
     with pdfplumber.open(io.BytesIO(file_bytes)) as pdf:
         for page in pdf.pages:
@@ -30,6 +30,7 @@ def extract_text_from_pdf(file_bytes: bytes) -> str:
 
 def extract_text_from_docx(file_bytes: bytes) -> str:
     from docx import Document
+
     doc = Document(io.BytesIO(file_bytes))
     return "\n\n".join(para.text for para in doc.paragraphs if para.text.strip())
 
@@ -51,6 +52,7 @@ def extract_text(file_bytes: bytes, filename: str) -> str:
 
 
 # ─── Text Chunking ───
+
 
 def chunk_text(text: str, chunk_size: int = 1000, overlap: int = 200) -> list[str]:
     if len(text) <= chunk_size:
@@ -77,7 +79,28 @@ def chunk_text(text: str, chunk_size: int = 1000, overlap: int = 200) -> list[st
     return chunks
 
 
-# ─── Embedding Generation ───
+# ─── Embedding Model Singleton ───
+_embeddings_model = None
+
+
+def get_embeddings_model():
+    global _embeddings_model
+    if _embeddings_model is None:
+        if settings.mock_llm:
+            return None
+        from langchain_huggingface import HuggingFaceEmbeddings
+        import torch
+
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        logger.info(
+            f"Initializing embedding model: {settings.embedding_model_name} on device {device}"
+        )
+
+        _embeddings_model = HuggingFaceEmbeddings(
+            model_name=settings.embedding_model_name, model_kwargs={"device": device}
+        )
+    return _embeddings_model
+
 
 def get_huggingface_embeddings(texts: list[str]) -> list[list[float]]:
     """
@@ -86,30 +109,25 @@ def get_huggingface_embeddings(texts: list[str]) -> list[list[float]]:
     """
     if settings.mock_llm:
         import numpy as np
+
         return [np.random.randn(384).tolist() for _ in texts]
 
-    from langchain_huggingface import HuggingFaceEmbeddings
-
-    embeddings_model = HuggingFaceEmbeddings(
-        model_name=settings.embedding_model_name
-    )
-
-    return embeddings_model.embed_documents(texts)
+    model = get_embeddings_model()
+    return model.embed_documents(texts)
 
 
 def get_single_embedding(text: str) -> list[float]:
     if settings.mock_llm:
         import numpy as np
+
         return np.random.randn(384).tolist()
 
-    from langchain_huggingface import HuggingFaceEmbeddings
-    embeddings_model = HuggingFaceEmbeddings(
-        model_name=settings.embedding_model_name
-    )
-    return embeddings_model.embed_query(text)
+    model = get_embeddings_model()
+    return model.embed_query(text)
 
 
 # ─── Full Processing Pipeline ───
+
 
 async def process_document(
     file_bytes: bytes,
@@ -123,16 +141,25 @@ async def process_document(
 ) -> dict:
     if metadata is None:
         metadata = {}
-    
+
     # 1. Extract & Chunk text
-    full_text = extract_text(file_bytes, filename)
-    chunks = chunk_text(full_text)
+    try:
+        full_text = extract_text(file_bytes, filename)
+        chunks = chunk_text(full_text)
+    except Exception as e:
+        logger.error(f"Failed to extract text from {filename}: {e}")
+        raise
 
     if not chunks:
+        logger.warning(f"No text extracted from {filename}")
         return {"chunk_count": 0, "embedding_count": 0, "text_length": 0}
 
     # 2. Generate HuggingFace Embeddings synchronously
-    embeddings = get_huggingface_embeddings(chunks)
+    try:
+        embeddings = get_huggingface_embeddings(chunks)
+    except Exception as e:
+        logger.error(f"Failed to generate embeddings for {filename}: {e}")
+        raise
 
     # 3. Upsert to Pinecone
     if pinecone_client.index:
@@ -146,25 +173,25 @@ async def process_document(
                 "department": department or "",
                 "course": course or "",
                 "chunk_index": i,
-                "content": chunk, # Store actual text content directly in vector DB
+                "content": chunk,  # Store actual text content directly in vector DB
             }
             # Inject extra metadata like release_date, deadline if present
             for k, v in metadata.items():
                 if isinstance(v, (str, int, float, bool)):
                     vector_meta[k] = v
 
-            vectors_to_upsert.append({
-                "id": vector_id,
-                "values": vector,
-                "metadata": vector_meta
-            })
-            
+            vectors_to_upsert.append(
+                {"id": vector_id, "values": vector, "metadata": vector_meta}
+            )
+
         # Upsert in batches of 100 for safety
         batch_size = 100
         for i in range(0, len(vectors_to_upsert), batch_size):
-            pinecone_client.index.upsert(vectors=vectors_to_upsert[i:i + batch_size])
+            pinecone_client.index.upsert(vectors=vectors_to_upsert[i : i + batch_size])
     else:
-        logger.warning(f"Pinecone client not initialized. Skipping embedding upsert for {filename}")
+        logger.warning(
+            f"Pinecone client not initialized. Skipping embedding upsert for {filename}"
+        )
 
     # Note: Document metadata is stored separately in Supabase (handled in the router)
 

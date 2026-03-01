@@ -1,215 +1,128 @@
-# UniGPT — Agentic Internal University GPT
+<div align="center">
+  <h1>UnivGPT 🎓</h1>
+  <p><strong>Agentic Internal University AI & Document Pipeline</strong></p>
+  
+  <p>
+    <img src="https://img.shields.io/badge/Python-3.11+-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python" />
+    <img src="https://img.shields.io/badge/FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white" alt="FastAPI" />
+    <img src="https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react&logoColor=black" alt="React" />
+    <img src="https://img.shields.io/badge/Vite-646CFF?style=flat-square&logo=vite&logoColor=white" alt="Vite" />
+    <img src="https://img.shields.io/badge/TailwindCSS-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white" alt="Tailwind" />
+    <img src="https://img.shields.io/badge/Supabase-3ECF8E?style=flat-square&logo=supabase&logoColor=white" alt="Supabase" />
+    <img src="https://img.shields.io/badge/PostgreSQL-4169E1?style=flat-square&logo=postgresql&logoColor=white" alt="Postgres" />
+    <img src="https://img.shields.io/badge/Pinecone-000000?style=flat-square&logo=pinecone&logoColor=white" alt="Pinecone" />
+    <img src="https://img.shields.io/badge/License-MIT-purple?style=flat-square" alt="License" />
+  </p>
+</div>
 
-> AI-powered document search and role-based access platform for universities.
 
-![UniGPT](https://img.shields.io/badge/UniGPT-v1.0.0-purple)
-![Python](https://img.shields.io/badge/Python-3.11+-blue)
-![React](https://img.shields.io/badge/React-19-blue)
-![License](https://img.shields.io/badge/License-MIT-green)
+## 🌟 Overview
 
-## 🚀 Quick Start
+**UnivGPT** is a production-grade, AI-powered document search and role-based access platform tailored specifically for universities. It allows students, faculty, and administrators to seamlessly query campus policies, fee deadlines, course syllabi, and administrative documents through an intelligent, context-aware chatbot.
+
+### ✨ Key Features
+- **🤖 Role-Aware AI Agent**: Custom conversational engine that understands user context (Student, Faculty, Admin).
+- **📚 Intelligent RAG Pipeline**: Hybrid embedding search using Supabase and Pinecone to provide accurate citations.
+- **🎨 Premium UI/UX**: Ultra-modern, fully responsive interface featuring glassmorphism, fluid animations, and dark mode.
+- **🔐 Strict Moderation**: Real-time intent classification and toxicity filtering to protect campus rules.
+- **☁️ Cloud-Native Stack**: Engineered for scale using FastAPI, React (Vite), and managed vector databases.
+
+---
+
+## 🚀 Quick Start Guide
 
 ### Prerequisites
-- **Node.js** 20+
-- **Python** 3.11+
-- **Docker** (optional, for local Supabase)
+Before you start, ensure you have the following installed:
+- [Node.js](https://nodejs.org/) (v20+)
+- [Python](https://www.python.org/) (v3.11+)
 
-### 1. Clone & Setup
+### 1. 📦 Clone & Environment Setup
+Clone the repository and set up your local environment files.
 
 ```bash
-git clone <repo-url>
-cd UniGPT
-cp .env.example .env       # Fill in your keys
-```
+git clone https://github.com/your-username/UnivGPT.git
+cd UnivGPT
 
-### 2. Backend
+# Setup backend environment
+cp backend/.env.example backend/.env
+
+# Setup frontend environment
+cp frontend/.env.example frontend/.env.local
+```
+*(Make sure to open the `.env` files and add your real API keys before continuing!)*
+
+### 2. ⚙️ Start the Backend (FastAPI)
 
 ```bash
 cd backend
+
+# Create and activate virtual environment
 python -m venv venv
-venv\Scripts\activate        # Windows
-# source venv/bin/activate   # macOS/Linux
+venv\Scripts\activate        # On Windows
+# source venv/bin/activate   # On Mac/Linux
+
+# Install dependencies
 pip install -r requirements.txt
 
-# Start the API server
+# Start the local development server
 uvicorn app.main:app --reload --port 8000
 ```
+> The API will be available at `http://localhost:8000`. You can view interactive docs at `http://localhost:8000/docs`.
 
-### 3. Frontend
+### 3. 🖥️ Start the Frontend (React + Vite)
 
+Open a new terminal window:
 ```bash
 cd frontend
-cp .env.example .env.local   # Fill in your keys
+
+# Install packages
 npm install
-npm run dev                   # http://localhost:5173
+
+# Start the frontend dev server
+npm run dev
 ```
-
-### 4. Database (Docker)
-
-```bash
-cd infrastructure
-docker-compose up -d
-
-# Run migrations
-docker exec -i infrastructure-db-1 psql -U postgres < supabase/migrations/001_initial_schema.sql
-
-# Load seed data
-docker exec -i infrastructure-db-1 psql -U postgres < supabase/seed.sql
-```
+> The web application will launch at `http://localhost:5173`.
 
 ---
 
-## 🔧 Environment Variables
+## ☁️ Setting Up Cloud Services
 
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `SUPABASE_URL` | Supabase project URL | ✅ |
-| `SUPABASE_ANON_KEY` | Supabase anonymous key | ✅ |
-| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key | ✅ |
-| `SUPABASE_JWT_SECRET` | JWT secret for token validation | ✅ |
-| `SUPABASE_DB_URL` | PostgreSQL connection string | ✅ |
-| `OPENROUTER_API_KEY` | OpenRouter API key for LLM calls | ✅ |
-| `OPENROUTER_MODEL` | LLM model (default: `meta-llama/llama-3.1-70b-instruct`) | ❌ |
-| `OPENROUTER_EMBEDDING_MODEL` | Embedding model (default: `openai/text-embedding-3-small`) | ❌ |
-| `OPENROUTER_BASE_URL` | OpenRouter base URL | ❌ |
-| `MOCK_LLM` | Set to `true` for dev/testing without real API calls | ❌ |
-| `CORS_ORIGINS` | Comma-separated allowed origins | ❌ |
+To run UniGPT fully, you need to configure two cloud services:
 
-### Frontend (.env.local)
+1. **Supabase (Relational DB & Auth)** 🟢
+   - Create a free project at [Supabase](https://supabase.com).
+   - Go to the SQL Editor and run the schema found in `backend/database_schema.sql` to initialize your database tables.
+   - Add your Supabase `URL` and `Anon Key` to your `.env` files.
 
-| Variable | Description |
-|----------|-------------|
-| `VITE_SUPABASE_URL` | Supabase URL |
-| `VITE_SUPABASE_ANON_KEY` | Supabase anonymous key |
-| `VITE_API_URL` | Backend API URL (default: `http://localhost:8000`) |
+2. **Pinecone (Vector Database)** 🌲
+   - Create a free tier index at [Pinecone](https://pinecone.io).
+   - Name the index `unigpt`, set dimensions to `384` (for HuggingFace local models).
+   - Add your Pinecone API Key to `backend/.env`.
 
 ---
 
-## 📁 Project Structure
+## 🔒 User Roles & Permissions
 
-```
-UniGPT/
-├── frontend/               # Frontend (React + Vite + TypeScript)
-│   ├── src/
-│   │   ├── components/     # Reusable UI components
-│   │   │   ├── ui/         # shadcn/ui primitives (Button, Card, Input, Badge)
-│   │   │   ├── chat/       # ChatWidget with citations
-│   │   │   └── layout/     # DashboardLayout with sidebar
-│   │   ├── pages/          # Page components
-│   │   │   ├── Landing.tsx  # Marketing landing page
-│   │   │   ├── auth/       # Login, Signup, ForgotPassword, VerifyEmail
-│   │   │   └── dashboard/  # StudentDashboard, FacultyDashboard, AdminDashboard
-│   │   ├── store/          # Zustand stores (authStore, chatStore)
-│   │   ├── lib/            # API client, Supabase client, utilities
-│   │   ├── App.tsx         # Router with protected routes
-│   │   └── index.css       # Design system + Tailwind
-│   └── vite.config.ts
-│
-├── backend/                # Backend (FastAPI + Python)
-│   ├── app/
-│   │   ├── main.py         # FastAPI app entry point
-│   │   ├── config.py       # Pydantic settings
-│   │   ├── middleware/      # Auth (JWT) + RBAC middleware
-│   │   ├── routers/        # Auth, Documents, Agent routers
-│   │   ├── services/       # Supabase client, document processor, agent pipeline
-│   │   └── models/         # Pydantic schemas
-│   ├── tests/              # Unit & integration tests
-│   ├── requirements.txt
-│   └── Dockerfile
-│
-├── infrastructure/         # Docker & DB
-│   ├── docker-compose.yml
-│   └── supabase/
-│       ├── migrations/     # SQL schema
-│       └── seed.sql        # Sample data
-│
-├── docs/                   # Design docs
-│   └── design.md           # Architecture + pipeline diagrams
-│
-├── .github/workflows/      # CI/CD
-│   └── ci.yml
-│
-├── .env.example
-├── .gitignore
-└── README.md
-```
+| Role | Access Level | Document Management | User Management |
+|------|--------------|---------------------|-----------------|
+| 🎓 **Student** | Can query general/public university documents. | ❌ No | ❌ No |
+| 👨‍🏫 **Faculty** | Can query public and faculty-restricted documents. | ✅ Can upload course materials. | ❌ No |
+| 🛡️ **Admin** | Unrestricted access to all data. | ✅ Can upload & delete any documents. | ✅ Can manage users & view audit logs. |
 
 ---
 
-## 🤖 Agent Pipeline
+## 🛠️ Technology Architecture
 
-The RAG (Retrieval-Augmented Generation) pipeline:
-
-1. **Auth & Role Check** — Verify JWT, extract user role
-2. **Intent Classification** — Classify query type (factual / policy / personal / admin)
-3. **Role-Filtered Search** — pgvector similarity search with `metadata.role` filter
-4. **Evidence Filtering** — Require matching docs; safe fallback if none found
-5. **Response Generation** — LangChain → OpenRouter LLM with context
-6. **Source Citations** — Attach document IDs, titles, snippets
-7. **Redaction Guardrails** — Block unauthorized access, log escalations
-
-See [docs/design.md](docs/design.md) for detailed diagrams.
+### **The RAG Pipeline Logic**
+1. **Query & Intent**: The user asks a question. The AI intercepts the query to check for malicious intent or off-topic chatter.
+2. **Context Retrieval**: The user's role is sent to **Pinecone** to fetch vector-embedded document chunks that the user actually has permission to view.
+3. **Augmentation**: The raw documents, time context, and user question are injected into the **System Prompt**.
+4. **Generation**: The LLM strictly answers using *only* the provided institutional documents, preventing hallucinations.
 
 ---
 
-## 🔒 Roles & Access
-
-| Role | Can Access | Can Upload | Can Manage |
-|------|-----------|-----------|-----------|
-| **Student** | student + public docs | ❌ | ❌ |
-| **Faculty** | faculty + public docs | faculty/public docs | ❌ |
-| **Admin** | all docs | all doc types | users, audit logs, settings |
-
----
-
-## 🧪 Testing
-
-```bash
-# Backend tests
-cd backend
-python -m pytest tests/ -v
-
-# Frontend type check + build
-cd frontend
-npx tsc --noEmit
-npm run build
-```
-
----
-
-## 🔗 API Endpoints
-
-| Method | Endpoint | Description | Auth |
-|--------|----------|-------------|------|
-| POST | `/auth/signup` | Register (student default) | No |
-| POST | `/auth/login` | Login → JWT | No |
-| GET | `/user/me` | Get profile | Yes |
-| POST | `/admin/users/invite` | Invite faculty/admin | Admin |
-| GET | `/admin/users` | List all users | Admin |
-| POST | `/admin/documents` | Upload & tag document | Admin/Faculty |
-| GET | `/documents` | List accessible docs | Yes |
-| GET | `/documents/:id` | Get single document | Yes |
-| DELETE | `/admin/documents/:id` | Delete document | Admin |
-| POST | `/agent/query` | Chat query (RAG) | Yes |
-| GET | `/agent/history` | Conversation history | Yes |
-| GET | `/admin/audit-logs` | View audit logs | Admin |
-| GET | `/health` | Health check | No |
-| GET | `/metrics` | System metrics | No |
-
-Full OpenAPI docs available at `http://localhost:8000/docs`
-
----
-
-## 📦 Deployment
-
-1. Set all environment variables in your hosting platform
-2. Build frontend: `cd frontend && npm run build` → deploy `dist/`
-3. Deploy backend: `cd backend && uvicorn app.main:app --host 0.0.0.0`
-4. Ensure Supabase is configured with the migration schema
-5. Create initial admin user through Supabase dashboard or seed script
-
----
+## 🤝 Contributing
+Contributions are always welcome! Feel free to open a Pull Request or create an Issue to discuss improvements, bugs, or features you want to add.
 
 ## 📄 License
-
-MIT
+This project is licensed under the [MIT License](LICENSE).
