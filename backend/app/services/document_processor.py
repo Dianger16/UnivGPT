@@ -6,11 +6,14 @@ Stores chunks in Pinecone for vector search.
 
 import io
 import logging
+import re
 
 from app.config import settings
 from app.services.pinecone_client import pinecone_client
 
 logger = logging.getLogger(__name__)
+
+SUPPORTED_EXTENSIONS = {".pdf", ".docx", ".txt", ".md"}
 
 
 # ─── Text Extraction ───
@@ -49,6 +52,53 @@ def extract_text(file_bytes: bytes, filename: str) -> str:
         return extract_text_from_txt(file_bytes)
     else:
         raise ValueError(f"Unsupported file type: {filename}")
+
+
+def is_supported_document(filename: str) -> bool:
+    lower = filename.lower()
+    return any(lower.endswith(ext) for ext in SUPPORTED_EXTENSIONS)
+
+
+def derive_document_tags(
+    filename: str,
+    doc_type: str,
+    department: str,
+    course: str,
+    tags: list[str],
+    metadata: dict | None = None,
+) -> list[str]:
+    metadata = metadata or {}
+    normalized: list[str] = []
+
+    def add_tag(value: str | None):
+        if not value:
+            return
+        slug = re.sub(r"[^a-z0-9]+", "-", value.strip().lower()).strip("-")
+        if slug and slug not in normalized:
+            normalized.append(slug)
+
+    add_tag(doc_type)
+    add_tag(department)
+    add_tag(course)
+    add_tag(filename.rsplit(".", 1)[-1])
+
+    base_name = filename.rsplit(".", 1)[0]
+    for token in re.split(r"[\W_]+", base_name):
+        if len(token) >= 3:
+            add_tag(token)
+
+    for match in re.findall(r"\b[A-Za-z]{2,}\d{2,}\b", f"{filename} {course}"):
+        add_tag(match)
+
+    for tag in tags:
+        add_tag(tag)
+
+    for key in ("semester", "year", "topic", "audience"):
+        value = metadata.get(key)
+        if isinstance(value, str):
+            add_tag(value)
+
+    return normalized
 
 
 # ─── Text Chunking ───
@@ -142,6 +192,15 @@ async def process_document(
     if metadata is None:
         metadata = {}
 
+    derived_tags = derive_document_tags(
+        filename=filename,
+        doc_type=doc_type,
+        department=department,
+        course=course,
+        tags=tags,
+        metadata=metadata,
+    )
+
     # 1. Extract & Chunk text
     try:
         full_text = extract_text(file_bytes, filename)
@@ -169,9 +228,12 @@ async def process_document(
             vector_meta = {
                 "document_id": document_id,
                 "filename": filename,
+                "doc_type": doc_type,
+                "audience": doc_type,
                 "role": doc_type,
                 "department": department or "",
                 "course": course or "",
+                "tags": derived_tags,
                 "chunk_index": i,
                 "content": chunk,  # Store actual text content directly in vector DB
             }
@@ -199,4 +261,5 @@ async def process_document(
         "chunk_count": len(chunks),
         "embedding_count": len(embeddings),
         "text_length": len(full_text),
+        "tags": derived_tags,
     }

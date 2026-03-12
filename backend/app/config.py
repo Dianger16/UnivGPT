@@ -14,6 +14,10 @@ class Settings(BaseSettings):
         "http://localhost:3000",
         "http://127.0.0.1:3000",
     ]
+    frontend_app_url: str = "http://localhost:5173"
+    oauth_redirect_path: str = "/auth/callback"
+    academic_email_domains: str = "krmu.edu.in"
+    require_verified_academic_email_for_queries: bool = True
 
     # Supabase (Auth & Core Data)
     supabase_url: str = ""

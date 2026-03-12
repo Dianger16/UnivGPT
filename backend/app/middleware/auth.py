@@ -22,6 +22,20 @@ class AuthenticatedUser:
         self.full_name = full_name
 
 
+def is_academic_email(email: str) -> bool:
+    normalized_email = (email or "").strip().lower()
+    if "@" not in normalized_email:
+        return False
+
+    domain = normalized_email.split("@", 1)[1]
+    allowed_domains = {
+        allowed.strip().lower().lstrip("@")
+        for allowed in settings.academic_email_domains.split(",")
+        if allowed.strip()
+    }
+    return domain in allowed_domains
+
+
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
 ) -> AuthenticatedUser:

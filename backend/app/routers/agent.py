@@ -4,14 +4,13 @@ Hybrid: Supabase (Chat History) + Pinecone (Search).
 """
 
 from fastapi import APIRouter, HTTPException, Depends
-from typing import Optional
-import uuid
 
 from app.models.schemas import (
     AgentQueryRequest, AgentQueryResponse,
     ConversationResponse, ConversationListResponse, UserRole
 )
-from app.middleware.auth import AuthenticatedUser, get_current_user
+from app.config import settings
+from app.middleware.auth import AuthenticatedUser, get_current_user, is_academic_email
 from app.services.agent_pipeline import run_agent_pipeline
 from app.services.supabase_client import get_supabase_admin
 
@@ -23,6 +22,16 @@ async def agent_query(
     user: AuthenticatedUser = Depends(get_current_user),
 ):
     try:
+        if (
+            settings.require_verified_academic_email_for_queries
+            and not user.id.startswith("dummy-id-")
+            and not is_academic_email(user.email)
+        ):
+            raise HTTPException(
+                status_code=403,
+                detail="Query access is locked until you sign in with your academic email or Microsoft college account.",
+            )
+
         return await run_agent_pipeline(
             query=body.query,
             user_id=user.id,

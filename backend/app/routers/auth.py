@@ -5,6 +5,7 @@ Simplified for Supabase Auth integration.
 
 from fastapi import APIRouter, HTTPException, Depends, Request
 import random
+from typing import Any
 from app.models.schemas import (
     LoginRequest,
     AuthResponse,
@@ -16,12 +17,44 @@ from app.models.schemas import (
     ResetPasswordRequest,
     SignupResponse,
 )
-from app.middleware.auth import AuthenticatedUser, get_current_user
+from app.middleware.auth import AuthenticatedUser, get_current_user, is_academic_email
+from app.config import settings
 from app.services.supabase_client import get_supabase_client, get_supabase_admin
 from app.services.audit import log_audit_event
 from app.services.email_service import EmailService
 
 router = APIRouter(tags=["Authentication"])
+
+
+def build_oauth_redirect_url() -> str:
+    base = settings.frontend_app_url.rstrip("/")
+    path = settings.oauth_redirect_path
+    if not path.startswith("/"):
+        path = f"/{path}"
+    return f"{base}{path}"
+
+
+def extract_identity_provider(auth_user: Any = None) -> str:
+    if auth_user is not None:
+        app_metadata = getattr(auth_user, "app_metadata", {}) or {}
+        providers = app_metadata.get("providers") or []
+        if providers:
+            return providers[0]
+    return "email"
+
+
+def build_user_profile(profile: dict, auth_user: Any = None) -> UserProfile:
+    email = profile.get("email", "")
+    return UserProfile(
+        id=profile["id"],
+        email=email,
+        full_name=profile.get("full_name", "User"),
+        role=UserRole(profile.get("role", "student")),
+        department=profile.get("department"),
+        created_at=str(profile.get("created_at")) if profile.get("created_at") else None,
+        academic_verified=is_academic_email(email),
+        identity_provider=extract_identity_provider(auth_user),
+    )
 
 
 @router.post("/auth/signup", response_model=SignupResponse)
@@ -147,6 +180,8 @@ async def login(request: Request, body: LoginRequest):
                 full_name=acc["name"],
                 role=UserRole(acc["role"]),
                 department=acc["dept"],
+                academic_verified=True,
+                identity_provider="email",
             ),
         )
 
@@ -195,14 +230,7 @@ async def login(request: Request, body: LoginRequest):
 
         return AuthResponse(
             access_token=auth_res.session.access_token,
-            user=UserProfile(
-                id=p["id"],
-                email=p["email"],
-                full_name=p["full_name"],
-                role=UserRole(p["role"]),
-                department=p.get("department"),
-                created_at=str(p.get("created_at")) if p.get("created_at") else None,
-            ),
+            user=build_user_profile(p, auth_res.user),
         )
     except Exception as e:
         raise HTTPException(status_code=401, detail=str(e))
@@ -268,12 +296,16 @@ async def verify_signup(request: Request, body: VerifySignupRequest):
         await log_audit_event(user_id=user_id, action="verify_signup")
         return AuthResponse(
             access_token=f"dev-dummy-token-{p.get('role', 'student')}",
-            user=UserProfile(
-                id=p["id"],
-                email=p.get("email", body.email),
-                full_name=p.get("full_name", "User"),
-                role=UserRole(p.get("role", "student")),
-                department=p.get("department"),
+            user=build_user_profile(
+                {
+                    "id": p["id"],
+                    "email": p.get("email", body.email),
+                    "full_name": p.get("full_name", "User"),
+                    "role": p.get("role", "student"),
+                    "department": p.get("department"),
+                    "created_at": p.get("created_at"),
+                },
+                target_user,
             ),
         )
     except Exception as e:
@@ -323,7 +355,26 @@ async def google_auth():
         res = supabase.auth.sign_in_with_oauth(
             {
                 "provider": "google",
-                "options": {"redirect_to": "http://localhost:5173/auth/callback"},
+                "options": {"redirect_to": build_oauth_redirect_url()},
+            }
+        )
+        return {"url": res.url}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/auth/microsoft")
+async def microsoft_auth():
+    """Returns the authorization URL for Microsoft OAuth via Supabase Azure provider."""
+    try:
+        supabase = get_supabase_client()
+        res = supabase.auth.sign_in_with_oauth(
+            {
+                "provider": "azure",
+                "options": {
+                    "redirect_to": build_oauth_redirect_url(),
+                    "scopes": "email profile openid",
+                },
             }
         )
         return {"url": res.url}
@@ -339,4 +390,6 @@ async def get_me(user: AuthenticatedUser = Depends(get_current_user)):
         email=user.email,
         full_name=user.full_name,
         role=UserRole(user.role),
+        academic_verified=is_academic_email(user.email) or user.id.startswith("dummy-id-"),
+        identity_provider="email",
     )

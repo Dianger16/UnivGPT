@@ -70,6 +70,8 @@ class UserProfile(BaseModel):
     department: Optional[str] = None
     avatar_url: Optional[str] = None
     created_at: Optional[str] = None
+    academic_verified: bool = False
+    identity_provider: Optional[str] = None
 
 
 class SignupResponse(BaseModel):
